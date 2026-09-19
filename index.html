@@ -759,10 +759,11 @@ function vistaParticipante(){
 
   if(ultimoTextoActivo !== activo.id){ seleccion = {}; comentario = ''; ultimoTextoActivo = activo.id; }
   const listos = criterios().filter(c => seleccion[c.id]).length;
+  const tieneComentario = comentario.trim().length > 0;
   setTimeout(() => {
     document.getElementById('barmount').innerHTML = `<div class="bar"><div class="in">
       <span class="count">${listos} de 5 criterios</span>
-      <button class="primary" data-act="enviar" ${listos < 5 ? 'disabled' : ''}>Enviar calificación</button>
+      <button class="primary" data-act="enviar" ${listos < 5 || !tieneComentario ? 'disabled' : ''} title="${!tieneComentario ? 'El comentario es obligatorio' : ''}">Enviar calificación</button>
     </div></div>`;
     conectar();
   }, 0);
@@ -1626,6 +1627,10 @@ function conectar(){
 
     // --- escrituras ---
     if(a === 'enviar'){
+      if(!comentario.trim()){
+        avisar('El comentario es obligatorio');
+        return;
+      }
       await guardarEvaluacion(D.estado.texto_activo, yo, seleccion);
       seleccion = {}; comentario = ''; return;
     }
