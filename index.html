@@ -391,9 +391,14 @@ function derivar(){
   const porRuta = ruta().seccion === 'panel' ? tallerPorSlug(ruta().slug) : null;
   const t = porRuta || D.talleres.find(x => x.id === D.estado.taller_activo) || D.talleres[0];
   D.estado.taller_activo  = t ? t.id : null;
-  // Para participantes no-admin, siempre usa el taller por defecto (Narradores Invisibles)
-  // para que vean la sesión en vivo correctamente
-  if(!soyAdmin() && !porRuta) D.estado.taller_activo = D.talleres[0] ? D.talleres[0].id : null;
+
+  // Para participantes no-admin: busca cualquier sesión en vivo en cualquier taller
+  // Si encuentra una, usa ese taller. Así ven la sesión activa sin importar el taller.
+  if(!soyAdmin() && !porRuta){
+    const tallerConSesionViva = D.talleres.find(x => x.sesion_en_vivo_id);
+    if(tallerConSesionViva) D.estado.taller_activo = tallerConSesionViva.id;
+  }
+
   D.estado.sesion_en_vivo = D.talleres.find(x => x.id === D.estado.taller_activo) ? D.talleres.find(x => x.id === D.estado.taller_activo).sesion_en_vivo_id : null;
 
   // No basta con que la sesión exista: tiene que ser de ESTE taller. Si no,
