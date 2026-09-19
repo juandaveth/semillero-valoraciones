@@ -1,0 +1,1768 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Valoraciones · Semillero de escrituras</title>
+<link rel="icon" href="/assets/logo_amarillo.png">
+<link rel="apple-touch-icon" href="/assets/logo_amarillo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ------------------------------------------------------------------ *
+     Semillero de escrituras · tintas planas sobre papel.
+     Regla que ordena todo: el verde ácido es RELLENO, no texto.
+     Sobre hueso da 1.2:1 y no se lee. Sobre tinta sí, y ahí sí es texto.
+   * ------------------------------------------------------------------ */
+  :root{
+    --bg:#f2efe6; --panel:#fbf9f4; --panel-2:#ebe7db;
+    --ink:#2f1163; --ink-2:#544273; --muted:#7b6f92;
+    --line:#ddd7c8; --hair:#e7e2d5;
+
+    --accent:#3b1578; --accent-soft:#e6e0f2; --on-accent:#f7f5ee;
+    --senal:#c7f04a; --on-senal:#2a0f56;      /* el bloque verde y su tinta */
+    --obra-bg:#3b1578; --obra-fg:#f7f5ee;     /* la portada del texto, violeta siempre */
+
+    --ok:#3b1578; --ok-bg:#e2f4b8;
+    --vivo:#a8321c; --vivo-bg:#f6e2d8;
+    --warn:#8a5a10; --warn-bg:#f7ead0;
+
+    --display:"Anton","Haettenschweiler","Arial Narrow",Impact,sans-serif;
+    --serif:var(--display);
+    --sans:"Instrument Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    --mono:var(--sans);
+    --grano:.05;
+  }
+  :root[data-tema="tinta"]{
+      --bg:#141218; --panel:#1d1a24; --panel-2:#262130;
+      --ink:#f2efe6; --ink-2:#c5bdd4; --muted:#968ca8;
+      --line:#332d3f; --hair:#282332;
+      --accent:#c7f04a; --accent-soft:#2b2f1a; --on-accent:#141218;
+      --senal:#c7f04a; --on-senal:#141218;
+      --obra-bg:#2a1152; --obra-fg:#f2efe6;
+      --ok:#c7f04a; --ok-bg:#26301a;
+      --vivo:#f08a6c; --vivo-bg:#3a211b;
+      --warn:#e0b45f; --warn-bg:#352a17;
+      --grano:.07;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-tema="papel"]){
+      --bg:#141218; --panel:#1d1a24; --panel-2:#262130;
+      --ink:#f2efe6; --ink-2:#c5bdd4; --muted:#968ca8;
+      --line:#332d3f; --hair:#282332;
+
+      --accent:#c7f04a; --accent-soft:#2b2f1a; --on-accent:#141218;
+      --senal:#c7f04a; --on-senal:#141218;
+      --obra-bg:#2a1152; --obra-fg:#f2efe6;
+
+      --ok:#c7f04a; --ok-bg:#26301a;
+      --vivo:#f08a6c; --vivo-bg:#3a211b;
+      --warn:#e0b45f; --warn-bg:#352a17;
+      --grano:.07;
+    }
+  }
+
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:400 15.5px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
+
+  /* Grano de impresión. Una sola capa, fija, nunca sobre los controles. */
+  body::after{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:9;
+    opacity:var(--grano);mix-blend-mode:multiply;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  @media (prefers-color-scheme:dark){ body::after{mix-blend-mode:screen} }
+  @media (prefers-reduced-motion:reduce){ *{transition:none!important} }
+
+  .page{max-width:640px;margin:0 auto;padding:20px 16px 96px;
+    display:flex;flex-direction:column;gap:16px;position:relative;z-index:1}
+  .wide{max-width:1040px}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  /* --- cabecera --- */
+  header.head{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;
+    border-bottom:2px solid var(--ink);padding-bottom:10px}
+  h1{margin:0;font:400 30px/.9 var(--display);text-transform:uppercase;
+    letter-spacing:.005em}
+  .kicker{margin:5px 0 0;font:500 12.5px/1.35 var(--sans);color:var(--muted)}
+
+  .modes{display:flex;gap:2px;flex:none;border:1px solid var(--line)}
+  .modes a{font:600 12px/1 var(--sans);color:var(--muted);text-decoration:none;
+    padding:9px 12px;cursor:pointer}
+  .modes a.on{background:var(--ink);color:var(--bg)}
+
+  .marca{margin:0 0 3px;font:500 12px/1 var(--sans);letter-spacing:.02em;color:var(--muted)}
+
+  /* El logo va como máscara del PNG original: se pinta con el color que toque
+     y no hay que redibujarlo, que siempre queda "casi igual". */
+  .sello{--m:44px;width:var(--m);height:var(--m);display:inline-block;
+    background:var(--accent);
+    -webkit-mask-image:url(/assets/lockup.png);mask-image:url(/assets/lockup.png);
+    -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;
+    -webkit-mask-size:calc(var(--m)*1.30) auto;mask-size:calc(var(--m)*1.30) auto;
+    -webkit-mask-position:calc(var(--m)*-0.155) calc(var(--m)*-0.426);
+    mask-position:calc(var(--m)*-0.155) calc(var(--m)*-0.426)}
+  .firma{margin:26px 0 0;padding-top:20px;border-top:1px solid var(--hair);
+    text-align:center;font:500 12.5px/1.45 var(--sans);color:var(--muted)}
+  .firma b{display:block;font-weight:600;color:var(--ink-2)}
+  .firma .sello{margin-top:12px;--m:40px}
+
+  .portada{background:var(--obra-bg);color:var(--obra-fg);border-radius:3px;
+    padding:40px 24px 34px;text-align:center}
+  .portada .marca{color:var(--senal);margin-bottom:14px;letter-spacing:.04em}
+  .portada .sello{--m:88px;background:var(--senal);margin-bottom:18px}
+  .portada h2{color:var(--obra-fg);font-size:clamp(32px,10vw,52px);line-height:.9;margin:0}
+  .portada p{margin:16px auto 0;max-width:34ch;color:#d9d2ea;font-size:14px;line-height:1.55}
+  .portada .primary{margin-top:24px;background:var(--senal);color:var(--on-senal)}
+  .portada .nota{margin-top:22px;font-size:12.5px;line-height:1.5;color:#b3a8cc;max-width:44ch}
+
+  .toolbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+  button.chip{appearance:none;background:transparent;color:var(--ink-2);
+    border:1px solid var(--line);font:600 12px/1 var(--sans);padding:9px 11px;
+    border-radius:3px;cursor:pointer;white-space:nowrap}
+  button.chip:hover{border-color:var(--ink);color:var(--ink)}
+  .chip .punto{display:inline-block;width:7px;height:7px;background:var(--senal);
+    margin-right:6px;vertical-align:baseline}
+
+  /* --- tarjetas --- */
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:3px;
+    padding:18px;position:relative}
+  .cab{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+  .cab h2{margin:0}
+  .pliegue{appearance:none;background:transparent;flex:none;
+    border:1px solid var(--line);color:var(--ink-2);width:28px;height:28px;border-radius:3px;
+    font:400 17px/1 var(--sans);cursor:pointer;display:flex;align-items:center;
+    justify-content:center;padding:0}
+  .pliegue:hover{border-color:var(--ink);color:var(--ink)}
+  .card.cerrada{padding:14px 18px}
+  .card.cerrada .cab{margin:0}
+  .card.cerrada h2{font-size:18px}
+  h2{margin:0 0 4px;font:400 21px/1 var(--display);text-transform:uppercase;
+    letter-spacing:.005em}
+  .sub{margin:0;color:var(--muted);font-size:13.5px;line-height:1.5}
+
+  /* --- el texto en consideración: donde vive la voz de la marca --- */
+  .obra{background:var(--obra-bg);color:var(--obra-fg);border-radius:3px;padding:22px 20px}
+  .obra .n{margin:0 0 10px;font:600 12px/1 var(--sans);color:var(--senal)}
+  .obra h2{margin:0;color:var(--obra-fg);font-size:clamp(30px,9vw,46px);line-height:.9}
+  .obra .autor{margin:6px 0 0;font:400 clamp(17px,4.5vw,22px)/1 var(--display);
+    text-transform:uppercase;color:var(--senal);letter-spacing:.005em}
+
+  /* --- criterios --- */
+  .crit{padding:20px 0;border-top:1px solid var(--hair)}
+  .crit:first-of-type{border-top:0;padding-top:2px}
+  .crit h3{margin:0 0 3px;font:400 19px/1 var(--display);text-transform:uppercase;
+    letter-spacing:.005em}
+  .crit p{margin:0 0 13px;color:var(--muted);font-size:13.5px;line-height:1.5}
+
+  /* El bloque de cinco. Sin esquinas: es tinta impresa, no una pastilla. */
+  .scale{display:grid;grid-template-columns:repeat(5,1fr);gap:0;
+    border:1.5px solid var(--ink)}
+  .scale button{appearance:none;background:transparent;border:0;
+    border-left:1.5px solid var(--ink);color:var(--ink);
+    font:400 24px/1 var(--display);padding:18px 0;cursor:pointer;
+    transition:background .1s}
+  .scale button:first-child{border-left:0}
+  .scale button:hover{background:var(--panel-2)}
+  .scale button[aria-pressed="true"]{background:var(--senal);color:var(--on-senal)}
+  .legend{margin:10px 0 0;min-height:19px;font:500 13.5px/1.4 var(--sans);color:var(--ink-2)}
+
+  /* --- barra de envío --- */
+  .bar{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--panel);
+    border-top:2px solid var(--ink);padding:11px 16px calc(11px + env(safe-area-inset-bottom))}
+  .bar .in{max-width:640px;margin:0 auto;display:flex;align-items:center;gap:12px}
+  .count{font:500 13px var(--sans);color:var(--muted);flex:1}
+
+  button.primary{appearance:none;background:var(--accent);color:var(--on-accent);border:0;
+    font:400 19px/1 var(--display);text-transform:uppercase;letter-spacing:.01em;
+    padding:15px 22px;border-radius:3px;cursor:pointer}
+  button.primary:disabled{opacity:.32;cursor:not-allowed}
+  button.ghost{appearance:none;background:transparent;color:var(--ink);
+    border:1px solid var(--ink);font:600 13px/1 var(--sans);padding:9px 13px;
+    border-radius:3px;cursor:pointer}
+  button.ghost:hover:not(:disabled){background:var(--ink);color:var(--bg)}
+  button.ghost:disabled{opacity:.3;cursor:not-allowed}
+  button.vivo{border-color:var(--vivo);color:var(--vivo)}
+  button.vivo:hover{background:var(--vivo);color:var(--bg)}
+  button.link{appearance:none;background:none;border:0;color:var(--muted);
+    cursor:pointer;font:500 12.5px var(--sans);padding:4px 6px;text-decoration:underline}
+  button.link:hover{color:var(--ink)}
+
+  /* --- avisos --- */
+  .notice{background:var(--panel);border:1px solid var(--line);border-radius:3px;
+    padding:30px 22px;text-align:center}
+  .notice strong{display:block;font:400 26px/.95 var(--display);text-transform:uppercase;
+    margin-bottom:9px;letter-spacing:.005em}
+  .notice span{color:var(--ink-2);font-size:14px;line-height:1.55}
+  .done{background:var(--ok-bg);border-color:transparent}
+  .done strong{color:var(--ok)}
+
+  /* --- formularios --- */
+  input,select,textarea{font:400 15.5px/1.5 var(--sans);padding:11px;border-radius:3px;
+    border:1px solid var(--line);background:var(--bg);color:var(--ink);width:100%}
+  textarea{resize:vertical;min-height:110px;font-family:var(--sans)}
+  input::placeholder{color:var(--muted)}
+  .form{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:14px;
+    padding-top:14px;border-top:1px solid var(--hair)}
+  .form .grow{flex:1;min-width:190px}
+  .form .lbl{width:100%;font:600 12px/1 var(--sans);color:var(--muted);margin-bottom:-2px}
+
+  /* --- tablas de resultados --- */
+  table{width:100%;border-collapse:collapse;font-size:14.5px}
+  td{text-align:left;padding:11px 6px;border-bottom:1px solid var(--hair)}
+  td.num{font:400 19px/1 var(--display);text-align:right;width:58px}
+  .track{height:8px;background:var(--panel-2);overflow:hidden;margin-top:6px}
+  .track i{display:block;height:100%;background:var(--senal)}
+
+  /* --- filas --- */
+  .row{display:flex;align-items:center;gap:10px;padding:13px 0;
+    border-top:1px solid var(--hair);flex-wrap:wrap}
+  .row:first-of-type{border-top:0}
+  .row .who{flex:1;min-width:170px}
+  .row .who b{display:block;font:400 17px/1.05 var(--display);text-transform:uppercase;
+    letter-spacing:.005em}
+  .row .who span{color:var(--muted);font-size:12.5px;line-height:1.4}
+  .row.sel{background:var(--accent-soft);margin:0 -10px;padding-left:10px;
+    padding-right:10px;border-top-color:transparent}
+
+  .pill{font:600 11px/1 var(--sans);text-transform:uppercase;letter-spacing:.04em;
+    padding:5px 8px;background:var(--panel-2);color:var(--muted);flex:none}
+  .pill.ok{background:var(--senal);color:var(--on-senal)}
+  .pill.aire{background:var(--vivo);color:#fff}
+  .pill.fuerte{background:var(--ink);color:var(--bg);font:400 17px/1 var(--display);
+    padding:6px 10px;letter-spacing:0}
+  .pos{font:400 19px/1 var(--display);color:var(--muted);width:32px;flex:none}
+
+  .cierre{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    margin-top:16px;padding-top:16px;border-top:2px solid var(--ink)}
+  .cierre .who{flex:1;min-width:200px}
+  .cierre .who b{display:block;font:400 18px/1.05 var(--display);text-transform:uppercase}
+  .cierre .who span{color:var(--muted);font-size:12.5px;line-height:1.4}
+
+  .tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;padding-top:14px;
+    border-top:1px dashed var(--line)}
+  .tools .lbl{width:100%;font:600 12px/1 var(--sans);color:var(--muted)}
+
+  .aviso{margin:14px 0 0;padding:13px 14px;border-radius:3px;
+    background:var(--vivo-bg);color:var(--vivo);font-size:13.5px;line-height:1.5}
+  .aviso b{font-weight:600}
+
+  /* --- el explicador --- */
+  .comentario{margin:0 0 10px;padding:12px 14px;background:var(--panel-2);
+    border-left:3px solid var(--senal);font-size:14.5px;line-height:1.6;
+    white-space:pre-wrap;overflow-wrap:break-word}
+  .comentario:last-child{margin-bottom:0}
+
+  .paso{padding:14px 0;border-top:1px solid var(--hair)}
+  .paso:first-of-type{border-top:0;padding-top:0}
+  .paso b{display:block;font:400 18px/1.05 var(--display);text-transform:uppercase;
+    margin-bottom:5px;letter-spacing:.005em}
+  .paso span{color:var(--ink-2);font-size:14px;line-height:1.55}
+
+  @media (max-width:420px){
+    .page{padding:16px 13px 96px}
+    h1{font-size:26px}
+  }
+</style>
+</head>
+<body>
+<div class="page" id="page"></div>
+<div id="barmount"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script>
+const cfg = window.SUPABASE_CONFIG;
+const sb  = window.supabase.createClient(cfg.url, cfg.anonKey, {
+  db: { schema: cfg.schema },
+  auth: { persistSession: true, detectSessionInUrl: true }
+});
+
+const ESCALA = {
+  1:'Todavía no funciona',
+  2:'Tiene algo, pero necesita desarrollo',
+  3:'Funciona',
+  4:'Funciona muy bien',
+  5:'Es uno de los puntos fuertes del texto'
+};
+
+// Estado de pantalla del admin: es de SU navegador, no de la sala.
+// Qué sesión está en vivo y qué texto está en concurso viven en la base.
+const TEMA_KEY = 'semillero-tema';
+// Sin preferencia guardada manda el teléfono. Al tocar el botón, manda la persona.
+const temaGuardado = () => { try { return localStorage.getItem(TEMA_KEY); } catch(e){ return null; } };
+const temaActual = () => temaGuardado() ||
+  (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'tinta' : 'papel');
+function aplicarTema(t){
+  if(t) document.documentElement.dataset.tema = t;
+  else delete document.documentElement.dataset.tema;
+}
+aplicarTema(temaGuardado());
+
+const UI_KEY = 'semillero-ui';
+const uiGuardada = () => { try { return JSON.parse(localStorage.getItem(UI_KEY)) || {}; }
+                           catch(e){ return {}; } };
+const guardarUI = () => { try { localStorage.setItem(UI_KEY, JSON.stringify({
+  taller_activo: D.estado.taller_activo,
+  sesion_vista: D.estado.sesion_vista,
+  orden_resultados: D.estado.orden_resultados,
+  resultados_visibles: D.estado.resultados_visibles,
+  paneles: D.estado.paneles
+})); } catch(e){} };
+
+let D = {
+  talleres:[], participantes:[], inscripciones:[], criterios:[],
+  sesiones:[], textos:[], evaluaciones:[], puntajes:[], discord:[], roles:[],
+  resultadosRPC:{},                    // promedios que llegan por función, para no-admin
+  comentarios:{},                      // texto_id -> comentarios, sin quién los escribió
+  misTextos:[], misComentarios:{},     // lo propio, sin depender de la sesión en vivo
+  estado: Object.assign({
+    taller_activo:null, sesion_vista:null, sesion_en_vivo:null,
+    texto_activo:null, resultados_visibles:false, orden_resultados:'lectura',
+    paneles:{}
+  }, uiGuardada())
+};
+
+let cargando = false;
+
+async function cargar(){
+  const [tal, per, ins, cri, ses, tex, eva, pun, dis, rls] = await Promise.all([
+    sb.from('talleres').select('*'),
+    sb.from('perfiles').select('*'),
+    sb.from('inscripciones').select('*'),
+    sb.from('criterios').select('*').eq('activo', true),
+    sb.from('sesiones').select('*'),
+    sb.from('textos').select('*'),
+    sb.from('evaluaciones').select('*'),
+    sb.from('puntajes').select('*'),
+    sb.from('discord_miembros').select('*'),
+    sb.from('discord_roles').select('*')
+  ]);
+  const err = [tal,per,ins,cri,ses,tex,eva,pun].find(r => r.error);
+  D.discord = dis.data || [];   // sin permiso llega vacío, y eso no es un error
+  D.roles   = (rls.data || []).sort((a,b) => b.posicion - a.posicion);
+  if(err){
+    console.error('Supabase:', err.error);
+    // "JWT issued at future" es un desfase de relojes entre servicios de
+    // Supabase: dura segundos y se arregla solo. Molestar con eso es ruido.
+    const transitorio = /JWT|issued at|token is expired/i.test(err.error.message || '');
+    if(!transitorio) avisar(err.error.message);
+  } else {
+    mensajeError = '';
+  }
+
+  D.talleres      = tal.data || [];
+  D.participantes = per.data || [];
+  // La base dice perfil_id; las vistas hablan de participante_id.
+  D.inscripciones = (ins.data || []).map(i => ({taller_id:i.taller_id, participante_id:i.perfil_id}));
+  D.criterios     = cri.data || [];
+  D.sesiones      = ses.data || [];
+  D.textos        = tex.data || [];
+  D.evaluaciones  = eva.data || [];
+  D.puntajes      = pun.data || [];
+  derivar();
+}
+
+// Traduce lo que está en la base al estado que las vistas ya sabían leer.
+function derivar(){
+  // En el panel, el taller lo dice la URL. Fuera del panel, el último usado.
+  const porRuta = ruta().seccion === 'panel' ? tallerPorSlug(ruta().slug) : null;
+  const t = porRuta || D.talleres.find(x => x.id === D.estado.taller_activo) || D.talleres[0];
+  D.estado.taller_activo  = t ? t.id : null;
+  D.estado.sesion_en_vivo = t ? t.sesion_en_vivo_id : null;
+
+  // No basta con que la sesión exista: tiene que ser de ESTE taller. Si no,
+  // al cambiar de ruta seguirías viendo los textos del taller anterior.
+  const vista = D.sesiones.find(x => x.id === D.estado.sesion_vista);
+  if(!vista || vista.taller_id !== D.estado.taller_activo){
+    const primera = D.estado.taller_activo ? sesionesDe(D.estado.taller_activo)[0] : null;
+    D.estado.sesion_vista = primera ? primera.id : null;
+  }
+  const viva = D.sesiones.find(x => x.id === D.estado.sesion_en_vivo);
+  D.estado.texto_activo = viva ? viva.texto_en_concurso_id : null;
+  guardarUI();
+}
+
+// El mensaje vive en el estado, no en el DOM: cada render lo vuelve a pintar.
+// Antes lo escribía directo y el render siguiente lo borraba, así que ningún
+// error de la base llegó nunca a la pantalla.
+let mensajeError = '';
+function avisar(msg){
+  mensajeError = msg || '';
+  if(msg) console.warn(msg);
+}
+
+// Toda escritura pasa por aquí: escribe, recarga, repinta.
+async function aplicar(fn){
+  if(cargando) return;
+  cargando = true;
+  mensajeError = '';
+  try {
+    const { error } = await fn();
+    if(error){ console.error(error); avisar(error.message); }
+    await cargar();
+    await refrescarResultados();
+  } catch(e){ console.error(e); avisar(String(e.message || e)); }
+  finally { cargando = false; render(); }
+}
+
+/* ---------------------------- consultas ---------------------------- */
+const persona   = id => D.participantes.find(p => p.id === id);
+const nom       = p => (p ? [p.nombre, p.apellido].filter(Boolean).join(' ') : '—');
+const handle    = p => ((p && p.discord) || '').replace(/#0+$/, '');
+// El autor puede estar enlazado a un perfil o ser solo un nombre escrito a mano.
+const autorDe   = t => (t.autor_id ? nom(persona(t.autor_id)) : (t.autor_nombre || 'sin autor'));
+const texto     = id => D.textos.find(t => t.id === id);
+const sesion    = id => D.sesiones.find(s => s.id === id);
+const taller    = id => D.talleres.find(t => t.id === id);
+const criterios = () => [...D.criterios].sort((a,b) => a.orden - b.orden);
+
+const tallerActivo = () => taller(D.estado.taller_activo) || null;
+const sesionVista  = () => sesion(D.estado.sesion_vista)  || null;
+const sesionEnVivo = () => sesion(D.estado.sesion_en_vivo) || null;
+
+const sesionesDe = tid => D.sesiones.filter(s => s.taller_id === tid)
+                                    .sort((a,b) => b.fecha.localeCompare(a.fecha));
+const textosDe   = sid => D.textos.filter(t => t.sesion_id === sid)
+                                  .sort((a,b) => a.orden - b.orden);
+const inscritosDe = tid => D.inscripciones.filter(i => i.taller_id === tid)
+                                          .map(i => persona(i.participante_id))
+                                          .filter(Boolean);
+const estaInscrito = (tid, pid) =>
+  D.inscripciones.some(i => i.taller_id === tid && i.participante_id === pid);
+
+// Califican los inscritos del taller, menos el autor.
+// El rol es permiso, no exención: un admin inscrito califica como cualquiera.
+function evaluadoresDe(t){
+  const s = sesion(t.sesion_id);
+  if(!s) return [];
+  return inscritosDe(s.taller_id).filter(p => p.id !== t.autor_id);
+}
+const evalDe = (texto_id, evaluador_id) =>
+  D.evaluaciones.find(e => e.texto_id === texto_id && e.evaluador_id === evaluador_id);
+const enviadasDe = texto_id => D.evaluaciones.filter(e => e.texto_id === texto_id);
+const pendientesDe = t => evaluadoresDe(t).length - enviadasDe(t.id).length;
+const evaluacionesDeSesion = sid => {
+  const ids = new Set(textosDe(sid).map(t => t.id));
+  return D.evaluaciones.filter(e => ids.has(e.texto_id));
+};
+
+function promedios(texto_id){
+  // Quien no es admin solo ve sus propias filas: promediarlas daría su propio
+  // voto disfrazado de promedio del grupo. Para él manda siempre el agregado.
+  if(!soyAdmin() && D.resultadosRPC[texto_id]) return D.resultadosRPC[texto_id];
+  const ids = new Set(enviadasDe(texto_id).map(e => e.id));
+  const out = {};
+  for(const c of criterios()){
+    const vals = D.puntajes.filter(p => ids.has(p.evaluacion_id) && p.criterio_id === c.id)
+                           .map(p => p.valor);
+    out[c.id] = vals.length ? vals.reduce((a,b) => a+b, 0) / vals.length : null;
+  }
+  const todos = Object.values(out).filter(v => v !== null);
+  out.total = todos.length ? todos.reduce((a,b) => a+b, 0) / todos.length : null;
+  return out;
+}
+
+function promedioSesion(sid){
+  const ids = new Set(evaluacionesDeSesion(sid).map(e => e.id));
+  const out = {};
+  for(const c of criterios()){
+    const vals = D.puntajes.filter(p => ids.has(p.evaluacion_id) && p.criterio_id === c.id)
+                           .map(p => p.valor);
+    out[c.id] = vals.length ? vals.reduce((a,b) => a+b, 0) / vals.length : null;
+  }
+  return out;
+}
+
+async function guardarEvaluacion(texto_id, _evaluador, seleccion){
+  const mapa = {};
+  for(const c of criterios()) mapa[c.id] = seleccion[c.id];
+  await aplicar(() => sb.rpc('enviar_valoracion',
+    {p_texto: texto_id, p_puntajes: mapa, p_comentario: comentario.trim() || null}));
+}
+
+// Un participante no puede leer los puntajes ajenos: para su propio texto
+// los promedios llegan por la función, que devuelve agregados y nunca filas.
+// Al admin le llegan los puntajes crudos y calcula localmente.
+// Al participante no: para su propio texto hay que pedir los agregados.
+async function refrescarResultados(){
+  if(!yo) return;
+  if(soyAdmin()){
+    // Al admin la RLS le da los puntajes crudos, así que los promedios los
+    // calcula solo. Los comentarios no: esos siempre llegan por la función.
+    const s = sesionVista();
+    if(s && s.fase === 'cerrada') await traerComentarios(s.id);
+    else D.comentarios = {};
+    return;
+  }
+  const viva = sesionEnVivo();
+  if(!viva || viva.fase !== 'cerrada'){ D.resultadosRPC = {}; D.comentarios = {}; return; }
+  await traerResultados(viva.id);
+  await traerComentarios(viva.id);
+}
+
+// Lo del autor no depende de que su sesión esté en vivo ni de que esté cerrada:
+// en cuanto su texto sale de concurso, puede verlo desde su perfil.
+async function traerLoMio(){
+  if(!yo) return;
+  const [t, c] = await Promise.all([sb.rpc('mis_textos'), sb.rpc('mis_comentarios')]);
+  if(t.error){ console.warn('mis_textos:', t.error.message); }
+  D.misTextos = t.data || [];
+  const acc = {};
+  for(const r of (c.data || [])) (acc[r.texto_id] = acc[r.texto_id] || []).push(r.comentario);
+  D.misComentarios = acc;
+}
+
+async function traerComentarios(sesion_id){
+  const { data, error } = await sb.rpc('comentarios_de_sesion', {p_sesion: sesion_id});
+  if(error){ console.warn('comentarios:', error.message); D.comentarios = {}; return; }
+  const acc = {};
+  for(const r of (data || [])){
+    (acc[r.texto_id] = acc[r.texto_id] || []).push(r.comentario);
+  }
+  D.comentarios = acc;
+}
+
+async function traerResultados(sesion_id){
+  const { data, error } = await sb.rpc('resultados_de_sesion', {p_sesion: sesion_id});
+  if(error){ console.warn('resultados:', error.message); return; }
+  const acc = {};
+  for(const r of (data || [])){
+    acc[r.texto_id] = acc[r.texto_id] || {};
+    acc[r.texto_id][r.criterio_id] = r.promedio === null ? null : Number(r.promedio);
+    acc[r.texto_id].n = r.n;
+  }
+  for(const tid of Object.keys(acc)){
+    const vals = criterios().map(c => acc[tid][c.id]).filter(v => v !== null && v !== undefined);
+    acc[tid].total = vals.length ? vals.reduce((a,b) => a+b, 0) / vals.length : null;
+  }
+  D.resultadosRPC = acc;
+}
+
+/* ------------------------- estado de la vista ---------------------- */
+const YO_KEY = 'semillero-valoraciones-yo';
+let yo = Number(localStorage.getItem(YO_KEY)) || null;
+let seleccion = {};
+let comentario = '';       // lo que va escribiendo quien califica
+let ultimoTextoActivo = null;
+let borrador = {fecha:'', nombre:'', titulo:'', autor:'', taller:''};
+let pantalla = 'entrar';        // 'entrar' | 'perfil'
+let confirmarPaso = null;       // {destino} cuando falta gente por enviar
+let borrarSesion = null;        // id de la sesión esperando confirmación
+let sincronizando = false;
+let confirmarAlta = false;     // inscripción masiva esperando confirmación
+
+const soyAdmin = () => !!(yo && persona(yo) && persona(yo).rol === 'admin');
+// #/               participante
+// #/panel           panel, redirige al primer taller
+// #/panel/invisibles panel de ese taller
+function ruta(){
+  const partes = (location.hash || '#/').replace(/^#\/?/, '').split('/').filter(Boolean);
+  return { seccion: partes[0] || '', slug: partes[1] || '' };
+}
+const modo = () => (ruta().seccion === 'panel' && soyAdmin() ? 'panel' : 'participante');
+const tallerPorSlug = sl => D.talleres.find(t => t.slug === sl) || null;
+const rutaDe = t => '#/panel/' + (t.slug || '');
+const fmt  = n => (n === null || n === undefined ? '—' : n.toFixed(1));
+const fmt2 = n => (n === null || n === undefined ? '—' : n.toFixed(2));
+const esc  = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio',
+               'agosto','septiembre','octubre','noviembre','diciembre'];
+function fechaLarga(iso){
+  const [a,m,d] = iso.split('-').map(Number);
+  return `${d} de ${MESES[m-1]} de ${a}`;
+}
+const hoyISO = () => new Date().toISOString().slice(0,10);
+const MESES_C = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+function fechaCorta(iso){
+  if(!iso) return '';
+  // "2026-09-12" sin hora se parsea como medianoche UTC, y en Colombia eso es
+  // el día anterior. Las fechas sin hora se leen a mano, no con Date.
+  if(/^\d{4}-\d{2}-\d{2}$/.test(iso)){
+    const [a,m,d] = iso.split('-').map(Number);
+    return `${d} ${MESES_C[m-1]} ${a}`;
+  }
+  const d = new Date(iso);
+  if(isNaN(d)) return '';
+  return `${d.getDate()} ${MESES_C[d.getMonth()]} ${d.getFullYear()}`;
+}
+const enviadasPor = pid => D.evaluaciones.filter(e => e.evaluador_id === pid).length;
+
+/* ------------------------------ vistas ----------------------------- */
+function render(){
+  const r = ruta();
+  if(r.seccion === 'panel' && soyAdmin() && D.talleres.length && !tallerPorSlug(r.slug)){
+    const primero = D.talleres.find(t => t.id === D.estado.taller_activo) || D.talleres[0];
+    if(primero && primero.slug){ location.hash = rutaDe(primero); return; }
+  }
+  const page = document.getElementById('page');
+  document.getElementById('barmount').innerHTML = '';
+  page.className = 'page' + (modo() === 'panel' ? ' wide' : '');
+  page.innerHTML = cabecera()
+    + (modo() === 'panel' ? vistaPanel() : vistaParticipante())
+    + firma();
+  conectar();
+}
+
+// Lo que las portadas del fanzine ponen abajo y centrado: la firma.
+function firma(){
+  return `<div class="firma">
+    <b>Semillero de escrituras</b>
+    Narradores Invisibles
+    <br><span class="sello" aria-hidden="true"></span>
+  </div>`;
+}
+
+function cabecera(){
+  const t = tallerActivo();
+  const enVivo = sesionEnVivo();
+  let linea;
+  if(modo() === 'panel'){
+    const v = sesionVista();
+    linea = (t ? esc(t.nombre) : 'Sin taller') + (v ? ', viendo ' + fechaLarga(v.fecha) : '');
+  }else{
+    linea = enVivo ? esc(t ? t.nombre : '') + ', ' + fechaLarga(enVivo.fecha)
+                   : (t ? esc(t.nombre) : 'Semillero de escrituras');
+  }
+  const tabs = soyAdmin() ? `
+    <nav class="modes">
+      <a data-act="ir" data-hash="#/" class="${modo() === 'participante' ? 'on' : ''}">Participante</a>
+      <a data-act="ir" data-hash="#/panel" class="${modo() === 'panel' ? 'on' : ''}">Panel</a>
+    </nav>` : '';
+
+  const oscuro = temaActual() === 'tinta';
+  const quien  = yo ? persona(yo) : null;
+  const herramientas = `
+    <div class="toolbar">
+      ${tabs}
+      <button class="chip" data-act="tema" aria-label="Cambiar a modo ${oscuro ? 'papel' : 'tinta'}">
+        ${oscuro ? 'Papel' : 'Tinta'}
+      </button>
+      ${quien ? `<button class="chip" data-act="ir_perfil"><i class="punto"></i>${
+        esc(quien.nombre || 'Mi perfil')}</button>` : ''}
+    </div>`;
+
+  return `
+  <header class="head">
+    <div>
+      <p class="marca">semillero de escrituras</p>
+      <h1>Valoración de textos</h1>
+      <p class="kicker">${linea}</p>
+    </div>
+    ${herramientas}
+  </header>
+  ${mensajeError ? `<p class="aviso" style="margin:0">${esc(mensajeError)}
+    <button class="link" data-act="cerrar_aviso">cerrar</button></p>` : ''}`;
+}
+
+/* --- participante --- */
+function vistaParticipante(){
+  if(!yo) return pantallaIngreso();
+  if(pantalla === 'perfil') return formularioPerfil(persona(yo));
+
+  const quien = persona(yo);
+  const pie = `<div class="card" style="padding:13px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span class="count" style="flex:1">Entraste como <b style="color:var(--ink)">${esc(nom(quien))}</b>${quien.rol === 'admin' ? ', admin' : ''}</span>
+      <button class="ghost" data-act="ir_perfil">Mi perfil</button>
+      <button class="ghost" data-act="salir">Salir</button>
+    </div>`;
+
+  const ses = sesionEnVivo();
+  if(!ses){
+    return `<div class="notice">
+      <strong>No hay sesión en vivo</strong>
+      <span>Cuando alguien del equipo del Semillero ponga la sesión en el aire,
+      aparece aquí.</span>
+    </div>` + comoFunciona() + pie;
+  }
+  if(!estaInscrito(ses.taller_id, yo)){
+    if(quien.rol === 'admin') return espejo(ses) + pie;
+    return `<div class="notice">
+      <strong>Esta sesión no es de tu taller</strong>
+      <span>Está en vivo ${esc(taller(ses.taller_id).nombre)}, y no apareces inscrito ahí.</span>
+    </div>` + pie;
+  }
+
+  if(ses.fase === 'cerrada'){
+    const listo = Object.keys(D.resultadosRPC).length > 0;
+    const cabeza = `<div class="notice done">
+      <strong>La sesión terminó</strong>
+      <span>Así quedaron los textos de esta sesión. Son promedios del grupo:
+      nadie sabe quién puso qué.</span>
+    </div>`;
+    if(!listo) return cabeza + `<div class="card"><p class="sub">Cargando los resultados…</p></div>` + pie;
+    const mio = textosDe(ses.id).filter(t => t.autor_id === yo);
+    return cabeza + bloqueResultados(ses, 'Resultados de la sesión',
+      'Promedio de 1 a 5. Cambia entre el orden del fanzine y el ranking.')
+      + bloqueComentarios(mio, 'Lo que te escribieron') + pie;
+  }
+
+  const activo = D.estado.texto_activo ? texto(D.estado.texto_activo) : null;
+  if(!activo || activo.sesion_id !== ses.id){
+    return `<div class="notice">
+      <strong>Aún no hay texto abierto</strong>
+      <span>Cuando todos hayan leído, el texto aparece aquí solo. No recargues.</span>
+    </div>` + comoFunciona() + pie;
+  }
+  if(activo.autor_id === yo){
+    return `<div class="notice">
+      <strong>Este texto es tuyo</strong>
+      <span>“${esc(activo.titulo)}” está en consideración. Te pedimos no calificarlo en esta sesión. Al final vas a ver los promedios del grupo, sin saber quién puso qué.</span>
+    </div>` + pie;
+  }
+  const ya = evalDe(activo.id, yo);
+  if(ya){
+    const mios = D.puntajes.filter(p => p.evaluacion_id === ya.id);
+    return `<div class="notice done">
+        <strong>Calificación enviada</strong>
+        <span>“${esc(activo.titulo)}”, de ${esc(autorDe(activo))}. Espera al siguiente texto.</span>
+      </div>
+      <div class="card">
+        <p class="kicker" style="margin-bottom:10px">Lo que enviaste</p>
+        <table>${criterios().map(c => {
+          const v = mios.find(p => p.criterio_id === c.id);
+          return `<tr><td>${esc(c.nombre)}</td><td class="num">${v ? v.valor : '—'}</td></tr>`;
+        }).join('')}</table>
+      </div>` + pie;
+  }
+
+  if(ultimoTextoActivo !== activo.id){ seleccion = {}; comentario = ''; ultimoTextoActivo = activo.id; }
+  const listos = criterios().filter(c => seleccion[c.id]).length;
+  setTimeout(() => {
+    document.getElementById('barmount').innerHTML = `<div class="bar"><div class="in">
+      <span class="count">${listos} de 5 criterios</span>
+      <button class="primary" data-act="enviar" ${listos < 5 ? 'disabled' : ''}>Enviar calificación</button>
+    </div></div>`;
+    conectar();
+  }, 0);
+
+  return `<div class="obra">
+      <p class="n">Texto ${activo.orden} de ${textosDe(ses.id).length}</p>
+      <h2>${esc(activo.titulo)}</h2>
+      <p class="autor">${esc(autorDe(activo))}</p>
+    </div>
+    <div class="card">
+      ${criterios().map(c => `
+        <div class="crit">
+          <h3>${c.orden}. ${esc(c.nombre)}</h3>
+          <p>${esc(c.pregunta)}</p>
+          <div class="scale">
+            ${[1,2,3,4,5].map(v => `<button data-crit="${c.id}" data-val="${v}"
+                aria-pressed="${seleccion[c.id] === v}">${v}</button>`).join('')}
+          </div>
+          <p class="legend">${seleccion[c.id] ? esc(ESCALA[seleccion[c.id]]) : ''}</p>
+        </div>`).join('')}
+
+      <div class="crit">
+        <h3>Algo que quieras decirle</h3>
+        <p>Opcional. Quien escribió el texto lo va a leer al final de la sesión,
+          sin saber que fue tuyo.</p>
+        <textarea id="comentario" maxlength="1000" rows="5"
+          placeholder="Lo que te pasó al leerlo, lo que te sobró, lo que te quedó sonando."
+          >${esc(comentario)}</textarea>
+        <p class="legend" id="cuenta_com">${comentario.length} de 1000</p>
+      </div>
+    </div>` + pie;
+}
+
+// Lo que ve un admin que no está inscrito: el reflejo de la sala, sin poder votar.
+function espejo(ses){
+  const t = D.estado.texto_activo ? texto(D.estado.texto_activo) : null;
+  const activo = (t && t.sesion_id === ses.id) ? t : null;
+
+  if(ses.fase === 'cerrada'){
+    return `<div class="notice done">
+      <strong>Sesión cerrada</strong>
+      <span>Cada autor está viendo los promedios de su propio texto. Tú diriges este taller, no calificas en él.</span>
+    </div>`;
+  }
+  if(!activo){
+    return `<div class="notice">
+      <strong>La sala está esperando</strong>
+      <span>Ningún texto está en concurso. Ponlo desde el panel cuando termine la lectura.</span>
+    </div>`;
+  }
+  const total = evaluadoresDe(activo).length;
+  const hechas = enviadasDe(activo.id).length;
+  return `<div class="notice">
+    <strong>En concurso: “${esc(activo.titulo)}”</strong>
+    <span>de ${esc(autorDe(activo))}. Van ${hechas} de ${total} enviadas.
+    Esto es lo que tiene la sala en pantalla ahora mismo.</span>
+  </div>`;
+}
+
+// Lo que la persona necesita entender antes de que empiece. Se muestra
+// mientras espera, que es el único rato en que va a tener ganas de leer.
+function comoFunciona(){
+  return `<div class="card">
+    <p class="kicker" style="margin-bottom:12px">Cómo funciona</p>
+
+    <div class="paso">
+      <b>La sesión va por turnos.</b>
+      <span>Los textos están en el fanzine y se trabajan en el orden en que
+      aparecen ahí.</span>
+    </div>
+
+    <div class="paso">
+      <b>Leeremos un texto a la vez.</b>
+      <span>Cuando todos lo hayan leído, ese texto entra en consideración y
+      aparece solo en tu teléfono. Tienes unos minutos para responder antes de
+      pasar al siguiente.</span>
+    </div>
+
+    <div class="paso">
+      <b>Son cinco criterios, de 1 a 5.</b>
+      <span>Voz narradora, personajes, perspectiva, ritmo y estructura, potencia
+      literaria. Cada número trae su descripción. No hay que escribir nada.</span>
+    </div>
+
+    <div class="paso">
+      <b>Lo que envías no lleva tu nombre.</b>
+      <span>El sistema sabe que fuiste tú, pero quien escribió el texto nunca va a
+      saber quién le puso qué.</span>
+    </div>
+
+    <div class="paso">
+      <b>No califiques tu propio texto.</b>
+      <span>Cuando llegue el turno del tuyo, te pedimos que no lo respondas en
+      esta sesión.</span>
+    </div>
+
+    <div class="paso">
+      <b>Al final de la sesión veremos el promedio de los textos.</b>
+      <span>Los miramos juntos, criterio por criterio. En tu teléfono queda
+      además el de tu propio texto.</span>
+    </div>
+
+    <div class="paso">
+      <b>Los promedios se acumulan.</b>
+      <span>Sesión tras sesión se van sumando, y al terminar el taller sirven para
+      reconocer los mejores textos.</span>
+    </div>
+
+    <p class="sub" style="margin-top:16px">Una vez envías, no se puede cambiar.
+      Piénsalo un segundo antes de darle enviar.</p>
+  </div>`;
+}
+
+function pantallaIngreso(){
+  return `<div class="portada">
+    <span class="sello" aria-hidden="true"></span>
+    <p class="marca">semillero de escrituras</p>
+    <h2>Narradores Invisibles</h2>
+    <p>Las sesiones de valoración del taller. Entra con la misma cuenta de
+      Discord con la que estás en el servidor.</p>
+    <button class="primary" data-act="entrar">Entrar con Discord</button>
+    <p class="nota">Entras una sola vez: después el teléfono recuerda la sesión.
+      Si abriste este enlace dentro de Discord, ábrelo mejor en Safari o Chrome
+      (menú de tres puntos, “Abrir en el navegador”). El navegador interno de
+      Discord no guarda la sesión y te la va a pedir cada vez.</p>
+  </div>`;
+}
+
+// Sirve para darse de alta (p = null) y para editar el perfil propio.
+function formularioPerfil(p){
+  const falta = p && (!p.nombre || !p.apellido);
+  return `<div class="card">
+    <h2>${falta ? 'Antes de empezar' : 'Mi perfil'}</h2>
+    <p class="sub" style="margin-bottom:4px">${falta
+      ? 'Discord nos dio tu apodo, no tu nombre. Así es como va a aparecer tu texto.'
+      : 'Cambia lo que quieras. Tus valoraciones ya enviadas no se tocan.'}</p>
+    <div class="form" style="border-top:0;padding-top:4px">
+      <span class="lbl">Nombre y apellido</span>
+      <input type="text" id="p_nombre" class="grow" placeholder="Nombre" value="${esc(p ? p.nombre : '')}">
+      <input type="text" id="p_apellido" class="grow" placeholder="Apellido" value="${esc(p ? p.apellido : '')}">
+    </div>
+    <p class="sub" style="margin-top:10px">Tu Discord es <b>@${esc(handle(p) || '?')}</b>.
+      Sirve para ubicarte en el servidor y no aparece junto a ninguna calificación.</p>
+    ${(() => {
+      const mios = D.talleres.filter(t => p && estaInscrito(t.id, p.id));
+      if(!mios.length) return `<div class="cierre"><div class="who">
+        <b>Todavía no estás en ningún taller</b>
+        <span>Escríbele a alguien del equipo del Semillero por Discord.</span>
+      </div></div>`;
+      return `<div class="cierre" style="display:block">
+        <p class="sub" style="margin-bottom:8px">${mios.length === 1 ? 'Perteneces a' : 'Perteneces a'}</p>
+        ${mios.map(t => `<div class="row" style="border:0;padding:4px 0">
+          <div class="who"><b>${esc(t.nombre)}</b></div>
+          <span class="pill ok">Inscrito</span>
+        </div>`).join('')}
+      </div>`;
+    })()}
+    <div class="cierre">
+      <div class="who"><span id="p_error" style="color:var(--vivo)"></span></div>
+      <button class="ghost" data-act="cancelar_perfil">Volver al inicio</button>
+      <button class="primary" data-act="guardar_perfil">Guardar</button>
+    </div>
+  </div>` + misTextosCalificados();
+}
+
+// Todo lo que le han calificado a esta persona, de todas las sesiones.
+function misTextosCalificados(){
+  if(!D.misTextos.length) return '';
+  return `<div class="card">
+    <h2>Textos calificados</h2>
+    <p class="sub" style="margin-bottom:6px">Lo que has llevado al taller, con el
+      promedio del grupo y lo que te escribieron. Aparece en cuanto tu texto sale
+      de concurso, no hay que esperar a que termine la sesión.</p>
+    ${D.misTextos.map(t => {
+      const coms = D.misComentarios[t.texto_id] || [];
+      const prom = promedios(t.texto_id);
+      const atributos = criterios().map(c => ({
+        nombre: c.nombre,
+        promedio: prom[c.id]
+      }));
+      return `<div style="padding:16px 0;border-top:1px solid var(--hair)">
+        <div class="row" style="border:0;padding:0 0 8px">
+          <div class="who">
+            <b>${esc(t.titulo)}</b>
+            <span>${esc(t.sesion)}, ${fechaCorta(t.fecha)}, ${t.n}
+              ${Number(t.n) === 1 ? 'valoración' : 'valoraciones'}</span>
+          </div>
+          ${t.listo
+            ? `<span class="pill fuerte">Promedio: ${prom.total === null ? '—' : Number(prom.total).toFixed(2)}</span>`
+            : '<span class="pill aire">En concurso</span>'}
+        </div>
+        ${!t.listo ? '<p class="sub">Todavía lo están calificando.</p>' : ''}
+        ${t.listo && atributos.some(a => a.promedio !== null) ? `
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin:12px 0">
+            ${atributos.map(a => `
+              <div style="padding:8px 10px;background:var(--panel-2);border-radius:4px;text-align:center">
+                <div style="font-size:12px;color:var(--muted);margin-bottom:4px">${esc(a.nombre)}</div>
+                <div style="font-weight:600;font-size:16px;color:var(--ink)">${
+                  a.promedio === null ? '—' : Number(a.promedio).toFixed(2)
+                }</div>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+        ${coms.length ? `<p class="sub" style="margin:4px 0 8px">${coms.length}
+          ${coms.length === 1 ? 'comentario' : 'comentarios'}, sin nombres y en desorden.</p>
+          ${coms.map(c => `<blockquote class="comentario">${esc(c)}</blockquote>`).join('')}`
+          : (t.listo ? '<p class="sub">Nadie dejó comentario.</p>' : '')}
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+/* --- panel (solo admin) --- */
+function vistaPanel(){
+  const s = sesionVista();
+  // Abiertas por defecto las que se usan durante la sesión; plegadas las de consulta.
+  return cardTaller()
+    + plegable('inscritos', cardInscritos(), false)
+    + plegable('discord',   cardDiscord(),   false)
+    + plegable('acumulado', cardAcumulado(), false)
+    + plegable('sesiones',  cardSesiones(),  true)
+    + (!s ? '' : (s.fase === 'cerrada' ? panelCerrado(s) : panelEnCurso(s)));
+}
+
+// Pliega cualquier tarjeta sin tener que reescribirla: le mete el botón y,
+// si está cerrada, deja solo el título. Lo que queda cerrado se recuerda.
+const estaAbierta = (clave, def) => {
+  const p = D.estado.paneles || {};
+  return clave in p ? p[clave] : def;
+};
+
+function plegable(clave, html, def){
+  if(!html) return '';
+  const abierta = estaAbierta(clave, def);
+  const boton = `<button class="pliegue" data-act="plegar" data-clave="${clave}"
+    aria-expanded="${abierta}" aria-label="${abierta ? 'Ocultar' : 'Mostrar'}">${
+    abierta ? '\u2212' : '+'}</button>`;
+  // El botón entra en la misma línea del título, no flotando sobre la tarjeta:
+  // a la derecha se montaba encima de los botones de cada fila.
+  if(abierta) return html
+    .replace('<h2', '<div class="cab">' + boton + '<h2')
+    .replace('</h2>', '</h2></div>');
+  const m = html.match(/<h2[^>]*>([\s\S]*?)<\/h2>/);
+  return `<div class="card cerrada"><div class="cab">${boton}<h2>${
+    m ? m[1] : clave}</h2></div></div>`;
+}
+
+function cardTaller(){
+  const activo = tallerActivo();
+  return `<div class="card">
+    <div class="row" style="border:0;padding:0 0 10px;align-items:flex-start">
+      <div class="who">
+        <h2>${activo ? esc(activo.nombre) : 'Talleres'}</h2>
+        <p class="sub">Cada taller tiene su propia ruta, sus inscritos, sus sesiones
+          y sus textos. Los votos nunca se cruzan.</p>
+      </div>
+      <nav class="modes">
+        ${D.talleres.map(t => `<a href="${rutaDe(t)}" class="${
+          activo && t.id === activo.id ? 'on' : ''}">${esc(t.nombre)}</a>`).join('')}
+      </nav>
+    </div>
+    ${activo ? `<p class="sub" style="font-size:12.5px">
+      ${inscritosDe(activo.id).length} inscritos ·
+      ${sesionesDe(activo.id).length} ${sesionesDe(activo.id).length === 1 ? 'sesión' : 'sesiones'} ·
+      registro ${activo.abierto_a_registro ? 'abierto' : 'cerrado'}</p>` : ''}
+    <div class="form">
+      <span class="lbl">Nuevo taller</span>
+      <input type="text" id="f_taller" class="grow" placeholder="Nombre del taller"
+             value="${esc(borrador.taller)}">
+      <button class="ghost" data-act="crear_taller">Crear</button>
+    </div>
+  </div>`;
+}
+
+function cardInscritos(){
+  const t = tallerActivo();
+  if(!t) return '';
+  const reciente = (a,b) => (b.creado_en || '').localeCompare(a.creado_en || '');
+  const gente = inscritosDe(t.id).sort(reciente);
+  const huerfanos = D.participantes
+    .filter(p => !D.talleres.some(x => estaInscrito(x.id, p.id))).sort(reciente);
+
+  const fila = (p, dentro) => {
+    const n = enviadasPor(p.id);
+    return `<div class="row">
+      <div class="who">
+        <b>${esc(nom(p))}${p.rol === 'admin' ? ' <span class="pill">admin</span>' : ''}</b>
+        <span>${handle(p) ? '@' + esc(handle(p)) : 'sin Discord'}${
+          p.creado_en ? ' &nbsp;·&nbsp; alta el ' + fechaCorta(p.creado_en) : ''}</span>
+      </div>
+      <span class="pill">${n === 0 ? 'sin votos' : n + (n === 1 ? ' voto' : ' votos')}</span>
+      <button class="ghost" data-act="${dentro ? 'desinscribir' : 'inscribir'}"
+              data-persona="${p.id}" data-taller="${t.id}">
+        ${dentro ? 'Quitar' : 'Inscribir'}
+      </button>
+    </div>`;
+  };
+
+  return `<div class="card">
+    <h2>Inscritos</h2>
+    <p class="sub" style="margin-bottom:6px">${gente.length}
+      ${gente.length === 1 ? 'persona' : 'personas'} en ${esc(t.nombre)}. Son el denominador
+      de cada texto, menos el autor. Los últimos en registrarse van primero.</p>
+    ${gente.map(p => fila(p, true)).join('') ||
+      '<p class="sub" style="padding:14px 0">Nadie todavía.</p>'}
+    ${huerfanos.length ? `<div style="padding:16px 0 0;border-top:2px solid var(--line)">
+      <p class="sub" style="margin-bottom:8px"><b>Registrados, sin ningún taller</b>.
+        Entraron con Discord pero no están en ninguno, así que no pueden calificar.</p>
+      ${huerfanos.map(p => fila(p, false)).join('')}
+    </div>` : ''}
+  </div>`;
+}
+
+// Tres cosas distintas que se confunden: estar en el servidor, tener el rol
+// del taller, y estar inscrito en la app. La tarjeta las separa.
+function cardDiscord(){
+  const t = tallerActivo();
+  if(!t) return '';
+
+  const porId = new Map(D.discord.map(m => [m.discord_id, m]));
+  const porNombre = new Map(D.discord.map(m => [(m.username || '').toLowerCase(), m]));
+  const enServidor = p => porId.get(p.discord_id) ||
+                          porNombre.get((handle(p) || '').toLowerCase()) || null;
+
+  const rol = t.discord_role_id || '';
+  const tieneRol = m => !!rol && (m.roles || []).includes(rol);
+  const ultima = D.discord.reduce((a,m) =>
+    (!a || m.sincronizado_en > a) ? m.sincronizado_en : a, null);
+
+  if(!D.discord.length){
+    return `<div class="card">
+      <h2>Discord</h2>
+      <p class="sub" style="margin-bottom:10px">Todavía no se ha traído la lista del
+        servidor. Al sincronizar vas a ver quién está en Discord, quién tiene el rol
+        de este taller y quién está inscrito en la app: son tres cosas distintas.</p>
+      ${campoRol(t)}
+      <div class="cierre">
+        <div class="who"></div>
+        <button class="primary" data-act="sync_discord" ${sincronizando ? 'disabled' : ''}>
+          ${sincronizando ? 'Trayendo…' : 'Sincronizar con Discord'}
+        </button>
+      </div>
+    </div>`;
+  }
+
+  const inscritos = inscritosDe(t.id);
+  const fuera  = inscritos.filter(p => !enServidor(p));
+  const sinRol = rol ? inscritos.filter(p => { const m = enServidor(p); return m && !tieneRol(m); }) : [];
+  const idsIns = new Set(inscritos.map(p => (enServidor(p) || {}).discord_id).filter(Boolean));
+  const faltan = D.discord.filter(m => !m.es_bot && tieneRol(m) && !idsIns.has(m.discord_id));
+  const alDia  = inscritos.length - fuera.length - sinRol.length;
+
+  // Una inscripción apunta a un perfil, y el perfil nace cuando la persona
+  // entra a la app. A quien nunca ha entrado no hay a quién inscribir.
+  const perfilDe = m => D.participantes.find(p =>
+    p.discord_id === m.discord_id ||
+    (handle(p) || '').toLowerCase() === (m.username || '').toLowerCase());
+  const inscribibles = faltan.map(m => ({m, p: perfilDe(m)})).filter(x => x.p);
+  const sinCuenta    = faltan.filter(m => !perfilDe(m));
+
+  const lista = (titulo, gente, comoTexto, tono) => !gente.length ? '' : `
+    <div style="padding:14px 0;border-top:1px solid var(--hair)">
+      <p class="sub" style="margin-bottom:8px;color:var(--${tono})"><b>${titulo}</b></p>
+      ${gente.map(x => `<div class="row" style="border:0;padding:5px 0">
+        <div class="who"><b>${esc(comoTexto(x))}</b></div>
+      </div>`).join('')}
+    </div>`;
+
+  return `<div class="card">
+    <h2>Discord</h2>
+    <p class="sub">${D.discord.filter(m => !m.es_bot).length} en el servidor.
+      ${rol ? D.discord.filter(m => tieneRol(m) && !m.es_bot).length + ' con el rol de este taller. ' : ''}
+      ${alDia} de ${inscritos.length} inscritos en orden.</p>
+
+    ${lista('Inscritos que no están en el servidor', fuera, nom, 'vivo')}
+    ${lista('Inscritos sin el rol de este taller', sinRol, nom, 'warn')}
+    ${lista('Tienen el rol, ya entraron a la app, y falta inscribirlos', inscribibles,
+            x => nom(x.p), 'warn')}
+    ${inscribibles.length ? (confirmarAlta ? `
+      <div class="aviso">
+        <b>¿Inscribir a ${inscribibles.length} ${inscribibles.length === 1 ? 'persona' : 'personas'} en “${esc(t.nombre)}”?</b>
+        Van a poder calificar y entran al denominador de cada texto.
+        <div style="margin-top:11px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="ghost" data-act="cancelar_alta">Cancelar</button>
+          <button class="ghost vivo" data-act="confirmar_alta">Inscribirlos</button>
+        </div>
+      </div>` : `
+      <div style="padding:2px 0 12px">
+        <button class="ghost" data-act="pedir_alta">
+          Inscribir a ${inscribibles.length === 1 ? 'esa persona' : 'esas ' + inscribibles.length}
+        </button>
+      </div>`) : ''}
+
+    ${lista('Tienen el rol pero todavía no han abierto la app', sinCuenta,
+            m => (m.display_name || m.username) + ' (@' + m.username + ')', 'muted')}
+    ${sinCuenta.length ? `<p class="sub">A esos no se les puede inscribir todavía:
+      la inscripción cuelga de un perfil, y el perfil nace cuando entran con Discord.
+      Mándales el enlace.</p>` : ''}
+
+    ${campoRol(t)}
+    <div class="form">
+      <span class="lbl">Todos los talleres, de una</span>
+      <p class="sub" style="width:100%;margin-bottom:8px">Inscribe a cada persona
+        registrada en los talleres cuyo rol tenga en Discord. Solo agrega; no saca
+        a nadie. Sincroniza antes, para no trabajar con una lista vieja.</p>
+      <button class="ghost" data-act="inscribir_por_roles">Inscribir según su rol</button>
+    </div>
+    <div class="cierre">
+      <div class="who">
+        <b>${ultima ? 'Última sincronización: ' + fechaCorta(ultima) : ''}</b>
+      </div>
+      <button class="ghost" data-act="sync_discord" ${sincronizando ? 'disabled' : ''}>
+        ${sincronizando ? 'Trayendo…' : 'Sincronizar'}
+      </button>
+    </div>
+  </div>`;
+}
+
+function campoRol(t){
+  const actual = t.discord_role_id || '';
+  if(!D.roles.length){
+    return `<div class="form">
+      <span class="lbl">Rol de Discord de “${esc(t.nombre)}”</span>
+      <p class="sub">Sincroniza con Discord y aquí aparece la lista de roles del servidor.</p>
+    </div>`;
+  }
+  return `<div class="form">
+    <span class="lbl">Qué rol de Discord es “${esc(t.nombre)}”</span>
+    <select id="f_rol" class="grow">
+      <option value="">Sin rol asignado</option>
+      ${D.roles.map(r => `<option value="${esc(r.role_id)}" ${
+        r.role_id === actual ? 'selected' : ''}>${esc(r.nombre)}</option>`).join('')}
+    </select>
+    <button class="ghost" data-act="guardar_rol">Guardar</button>
+  </div>`;
+}
+
+// Acumulado del taller: todos los textos de todas las sesiones cerradas.
+// El promedio es el de quienes estuvieron en esa clase, sin ajustes.
+function acumulado(taller_id){
+  const cerradas = sesionesDe(taller_id).filter(s => s.fase === 'cerrada');
+  const ids = new Set(cerradas.map(s => s.id));
+  const textos = D.textos.filter(t => ids.has(t.sesion_id));
+  const textoIds = new Set(textos.map(t => t.id));
+
+  const evals = D.evaluaciones.filter(e => textoIds.has(e.texto_id));
+  const porEval = new Map(evals.map(e => [e.id, e]));
+  const puntos = D.puntajes.filter(p => porEval.has(p.evaluacion_id));
+  if(!puntos.length) return {cerradas, filas:[], sesiones:[], general:null};
+
+  const media = arr => arr.length ? arr.reduce((a,b) => a+b, 0) / arr.length : null;
+  const general = media(puntos.map(p => p.valor));
+
+  const filas = textos.map(t => {
+    const mios = new Set(evals.filter(e => e.texto_id === t.id).map(e => e.id));
+    const suyos = puntos.filter(p => mios.has(p.evaluacion_id));
+    return {t, n: mios.size, promedio: media(suyos.map(p => p.valor))};
+  }).filter(f => f.n > 0);
+
+  const sesiones = cerradas.map(s => {
+    const deLaSesion = new Set(textos.filter(t => t.sesion_id === s.id).map(t => t.id));
+    const suyos = puntos.filter(p => deLaSesion.has(porEval.get(p.evaluacion_id).texto_id));
+    return {s, media: media(suyos.map(p => p.valor)),
+            textos: textos.filter(t => t.sesion_id === s.id).length};
+  }).sort((a,b) => a.s.fecha.localeCompare(b.s.fecha));
+
+  return {cerradas, filas, sesiones, general};
+}
+
+function cardAcumulado(){
+  const t = tallerActivo();
+  if(!t) return '';
+  const {cerradas, filas, sesiones, general} = acumulado(t.id);
+
+  if(!cerradas.length || !filas.length){
+    return `<div class="card">
+      <h2>Acumulado del taller</h2>
+      <p class="sub">Aquí se suman los textos de todas las sesiones cerradas.
+        ${cerradas.length ? 'Todavía no hay valoraciones.' : 'Todavía no hay ninguna sesión cerrada.'}</p>
+    </div>`;
+  }
+
+  const orden = [...filas].sort((a,b) => b.promedio - a.promedio);
+  const pocos = orden.filter(f => f.n < 5).length;
+
+  return `<div class="card">
+    <h2>Acumulado del taller</h2>
+    <p class="sub">${filas.length} ${filas.length === 1 ? 'texto' : 'textos'} de
+      ${cerradas.length} ${cerradas.length === 1 ? 'sesión cerrada' : 'sesiones cerradas'}.
+      Promedio general ${fmt2(general)}. Cada texto lleva el promedio de quienes
+      estuvieron en esa clase.</p>
+
+    ${orden.map((f,i) => `<div class="row">
+      <span class="pos">${i+1}º</span>
+      <div class="who">
+        <b>${esc(f.t.titulo)}</b>
+        <span>${esc(autorDe(f.t))}, ${fechaCorta((sesion(f.t.sesion_id)||{}).fecha)},
+          ${f.n} ${f.n === 1 ? 'valoración' : 'valoraciones'}</span>
+      </div>
+      <span class="pill fuerte">${fmt2(f.promedio)}</span>
+    </div>`).join('')}
+
+    ${pocos ? `<p class="sub" style="margin-top:12px">${pocos}
+      ${pocos === 1 ? 'texto tiene' : 'textos tienen'} menos de cinco valoraciones.
+      Con tan pocas, el promedio dice más del azar que del texto.</p>` : ''}
+
+    <div style="padding:16px 0 0;border-top:2px solid var(--line);margin-top:14px">
+      <p class="sub" style="margin-bottom:8px"><b>Sesión por sesión</b></p>
+      ${sesiones.map(x => `<div class="row" style="border:0;padding:6px 0">
+        <div class="who"><b>${esc(x.s.nombre)}</b>
+          <span>${fechaCorta(x.s.fecha)}, ${x.textos} ${x.textos === 1 ? 'texto' : 'textos'}</span></div>
+        <span class="pill">${fmt2(x.media)}</span>
+      </div>`).join('')}
+      <p class="sub" style="margin-top:8px">La media de cada sesión. No dice si el taller
+        mejora: dice cómo calificó la gente que vino ese día.</p>
+    </div>
+  </div>`;
+}
+
+function cardSesiones(){
+  const t = tallerActivo();
+  if(!t) return '';
+  const enVivo = D.estado.sesion_en_vivo;
+
+  const filas = sesionesDe(t.id).map(s => {
+    const n = textosDe(s.id).length;
+    const votos = evaluacionesDeSesion(s.id).length;
+    const viendo = D.estado.sesion_vista === s.id;
+    const aire = enVivo === s.id;
+    if(borrarSesion === s.id){
+      return `<div class="row" style="align-items:flex-start">
+        <div class="who">
+          <b>¿Borrar “${esc(s.nombre)}”?</b>
+          <span>Se van con ella ${n} ${n === 1 ? 'texto' : 'textos'} y
+            ${votos} ${votos === 1 ? 'valoración' : 'valoraciones'}. No se puede deshacer.${
+            aire ? ' Además está en vivo: los celulares se quedan sin sesión.' : ''}</span>
+        </div>
+        <button class="ghost" data-act="cancelar_borrar">Cancelar</button>
+        <button class="ghost vivo" data-act="confirmar_borrar" data-sesion="${s.id}">Borrar</button>
+      </div>`;
+    }
+    return `<div class="row ${viendo ? 'sel' : ''}">
+      <div class="who">
+        <b>${esc(s.nombre)}</b>
+        <span>${fechaLarga(s.fecha)}, ${n} ${n === 1 ? 'texto' : 'textos'}, ${votos} ${votos === 1 ? 'valoración' : 'valoraciones'}</span>
+      </div>
+      ${aire ? '<span class="pill aire">En vivo</span>' : ''}
+      <span class="pill${s.fase === 'en_curso' ? ' ok' : ''}">${s.fase === 'en_curso' ? 'Abierta' : 'Cerrada'}</span>
+      ${viendo ? '' : `<button class="ghost" data-act="ver_sesion" data-sesion="${s.id}">Ver</button>`}
+      <button class="ghost ${aire ? 'vivo' : ''}" data-act="${aire ? 'quitar_aire' : 'poner_aire'}" data-sesion="${s.id}">
+        ${aire ? 'Sacar del aire' : 'Poner en vivo'}
+      </button>
+      <button class="link" data-act="pedir_borrar" data-sesion="${s.id}">borrar</button>
+    </div>`;
+  }).join('');
+
+  const nada = `<p class="sub" style="padding:14px 0">Este taller todavía no tiene sesiones.</p>`;
+  const estado = enVivo
+    ? `<div class="aviso">En vivo ahora: <b>${esc(sesionEnVivo().nombre)}</b>, ${fechaLarga(sesionEnVivo().fecha)}. Es lo único que ven los celulares.</div>`
+    : `<div class="aviso">Nada en el aire. Los participantes ven “no hay sesión en vivo”.</div>`;
+
+  return `<div class="card">
+    <h2>Sesiones</h2>
+    <p class="sub" style="margin-bottom:6px"><b>Ver</b> cambia lo que miras tú. <b>Poner en vivo</b> cambia lo que ven ellos. Son cosas distintas.</p>
+    ${filas || nada}
+    ${estado}
+    <div class="form">
+      <span class="lbl">Nueva sesión</span>
+      <input type="date" id="f_fecha" value="${esc(borrador.fecha || hoyISO())}" style="width:auto">
+      <input type="text" id="f_nombre" class="grow" placeholder="Nombre (opcional)" value="${esc(borrador.nombre)}">
+      <button class="ghost" data-act="crear_sesion">Crear</button>
+    </div>
+  </div>`;
+}
+
+function panelEnCurso(s){
+  const enVivo = D.estado.sesion_en_vivo === s.id;
+  const lista = textosDe(s.id);
+  const inscritos = inscritosDe(s.taller_id);
+
+  const filas = lista.map(t => {
+    const total  = evaluadoresDe(t).length;
+    const hechas = enviadasDe(t.id).length;
+    const activo = enVivo && D.estado.texto_activo === t.id;
+    const listo  = !activo && hechas > 0;
+    return `<div class="row">
+      <div class="who">
+        <b>${t.orden}. ${esc(t.titulo)}</b>
+        <span>${esc(autorDe(t))}${t.autor_id ? '' : ' (sin cuenta)'}, ${hechas} de ${total} enviadas</span>
+      </div>
+      ${activo ? '<span class="pill aire">En concurso</span>' : ''}
+      ${listo  ? '<span class="pill ok">Listo</span>'         : ''}
+      <button class="ghost" data-act="${activo ? 'cerrar' : 'abrir'}" data-texto="${t.id}" ${enVivo ? '' : 'disabled'}>
+        ${activo ? 'Cerrar' : 'Poner en concurso'}
+      </button>
+      ${hechas === 0 && !activo ? `<button class="link" data-act="borrar_texto" data-texto="${t.id}">quitar</button>` : ''}
+    </div>`;
+  }).join('');
+
+  const conVotos = lista.filter(t => enviadasDe(t.id).length > 0);
+  const faltan   = lista.filter(t => enviadasDe(t.id).length === 0);
+  const hayAbierto = enVivo && D.estado.texto_activo;
+  const puedeCerrar = conVotos.length > 0 && !hayAbierto;
+
+  let aviso;
+  if(!lista.length)      aviso = 'Agrega los textos que se van a leer.';
+  else if(hayAbierto)    aviso = 'Hay un texto en concurso. Ciérralo antes de terminar la sesión.';
+  else if(faltan.length) aviso = `${faltan.length} ${faltan.length === 1 ? 'texto se quedó' : 'textos se quedaron'} sin valoraciones: ` +
+                                 faltan.map(t => '“' + esc(t.titulo) + '”').join(', ') + '. Se publican vacíos.';
+  else                   aviso = `Los ${lista.length} textos tienen valoraciones. Puedes terminar.`;
+
+  const fueraDelAire = enVivo ? '' :
+    `<div class="aviso">Esta sesión no está en el aire, así que no puedes poner textos en concurso: nadie los recibiría. Ponla en vivo arriba.</div>`;
+
+  return `<div class="card">
+      <h2>Textos de la sesión</h2>
+      <p class="sub" style="margin-bottom:6px">Tú decides cuál está en concurso, uno a la vez. El autor no entra en el denominador.</p>
+      ${filas || '<p class="sub" style="padding:14px 0">Esta sesión todavía no tiene textos.</p>'}
+      ${avisoDePaso()}
+      ${fueraDelAire}
+      <div class="form">
+        <span class="lbl">Agregar texto</span>
+        <input type="text" id="f_titulo" class="grow" placeholder="Título del texto" value="${esc(borrador.titulo)}">
+        <input type="text" id="f_autor" list="lista_autores" style="width:auto;min-width:190px"
+               placeholder="Autor" value="${esc(borrador.autor)}">
+        <datalist id="lista_autores">
+          ${inscritos.filter(p => p.nombre).map(p => `<option value="${esc(nom(p))}"></option>`).join('')}
+        </datalist>
+        <button class="ghost" data-act="agregar_texto">Agregar</button>
+      </div>
+      <div class="cierre">
+        <div class="who">
+          <b>${conVotos.length} de ${lista.length} textos calificados</b>
+          <span>${aviso}</span>
+        </div>
+        <button class="primary" data-act="cerrar_sesion" ${puedeCerrar ? '' : 'disabled'}>
+          Terminar sesión y publicar
+        </button>
+      </div>
+      <div class="tools">
+        <span class="lbl">Solo en el prototipo</span>
+        <button class="ghost" data-act="simular" ${hayAbierto ? '' : 'disabled'}>Simular envíos del texto en concurso</button>
+        <button class="ghost" data-act="simular_todo">Simular la sesión completa</button>
+        <button class="ghost" data-act="resultados">${D.estado.resultados_visibles ? 'Ocultar' : 'Espiar'} resultados parciales</button>
+        <button class="ghost" data-act="reiniciar">Reiniciar todo</button>
+      </div>
+    </div>${D.estado.resultados_visibles ? plegable('resultados',
+      bloqueResultados(s, 'Resultados parciales',
+      'Solo tú ves esto. Los participantes no.'), true) : ''}`;
+}
+
+// Pasar de texto borra lo que la gente lleve marcado sin enviar. Se avisa antes.
+function avisoDePaso(){
+  if(!confirmarPaso) return '';
+  const actual = D.estado.texto_activo ? texto(D.estado.texto_activo) : null;
+  if(!actual) return '';
+  const n = pendientesDe(actual);
+  const destino = confirmarPaso.destino ? texto(confirmarPaso.destino) : null;
+  return `<div class="aviso">
+    <b>${n} ${n === 1 ? 'persona no ha enviado' : 'personas no han enviado'}</b> su calificación de
+    “${esc(actual.titulo)}”. Si ${destino ? 'pasas a “' + esc(destino.titulo) + '”' : 'cierras'} ahora,
+    lo que lleven marcado se pierde y tienen que empezar de cero.
+    <div style="margin-top:11px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="ghost" data-act="cancelar_paso">Esperar</button>
+      <button class="ghost vivo" data-act="confirmar_paso">${destino ? 'Pasar igual' : 'Cerrar igual'}</button>
+    </div>
+  </div>`;
+}
+
+function panelCerrado(s){
+  const votos = evaluacionesDeSesion(s.id).length;
+  const conVotos = textosDe(s.id).filter(t => enviadasDe(t.id).length > 0).length;
+  return `<div class="card">
+      <h2>Sesión cerrada</h2>
+      <p class="sub">Los resultados ya están publicados. Cada autor ve los promedios de su propio texto, sin nombres.</p>
+      <div class="cierre">
+        <div class="who">
+          <b>${votos} ${votos === 1 ? 'valoración recibida' : 'valoraciones recibidas'}</b>
+          <span>de ${conVotos} ${conVotos === 1 ? 'texto' : 'textos'}</span>
+        </div>
+        <button class="ghost" data-act="reabrir">Reabrir la sesión</button>
+      </div>
+    </div>${plegable('resultados', bloqueResultados(s, 'Resultados de la sesión',
+      'Promedio de 1 a 5, sin nombres de quien califica.'), true)}
+    ${plegable('comentarios', bloqueComentarios(textosDe(s.id), 'Comentarios de la sesión'), true)}`;
+}
+
+function bloqueComentarios(textos, titulo){
+  const con = textos.filter(t => (D.comentarios[t.id] || []).length);
+  if(!con.length) return '';
+  return `<div class="card">
+    <h2>${titulo}</h2>
+    <p class="sub" style="margin-bottom:6px">Sin nombres y en desorden, para que
+      no se pueda deducir quién escribió cada uno por el turno en que llegó.</p>
+    ${con.map(t => `<div style="padding:14px 0;border-top:1px solid var(--hair)">
+      ${textos.length > 1 ? `<p class="kicker" style="margin-bottom:8px">${esc(t.titulo)}</p>` : ''}
+      ${(D.comentarios[t.id] || []).map(c => `<blockquote class="comentario">${esc(c)}</blockquote>`).join('')}
+    </div>`).join('')}
+  </div>`;
+}
+
+function bloqueResultados(s, titulo, sub){
+  const porPuntaje = D.estado.orden_resultados === 'puntaje';
+  let lista = textosDe(s.id).map(t => {
+    const pr = promedios(t.id);
+    // El participante no ve las filas ajenas: el conteo llega con los promedios.
+    return {t, pr, n: soyAdmin() ? enviadasDe(t.id).length : (pr.n || 0)};
+  });
+  if(porPuntaje) lista.sort((a,b) => (b.pr.total === null ? -1 : b.pr.total) -
+                                     (a.pr.total === null ? -1 : a.pr.total));
+
+  const ses = promedioSesion(s.id);
+  const hayDatos = soyAdmin() && evaluacionesDeSesion(s.id).length > 0;
+
+  return `<div class="card">
+    <div class="row" style="padding:0 0 4px;border:0;align-items:flex-start">
+      <div class="who">
+        <h2>${titulo}</h2>
+        <p class="sub">${sub}</p>
+      </div>
+      <div class="modes" style="margin-top:2px">
+        <a data-act="orden" data-orden="lectura" class="${porPuntaje ? '' : 'on'}">Orden de lectura</a>
+        <a data-act="orden" data-orden="puntaje" class="${porPuntaje ? 'on' : ''}">Ranking</a>
+      </div>
+    </div>
+
+    ${lista.map((r, i) => `
+      <div style="padding:16px 0;border-top:1px solid var(--hair)">
+        <div class="row" style="padding:0 0 10px;border:0">
+          ${porPuntaje ? `<span class="pos">${r.pr.total === null ? '—' : (i+1) + 'º'}</span>` : ''}
+          <div class="who">
+            <b>${porPuntaje ? '' : r.t.orden + '. '}${esc(r.t.titulo)}</b>
+            <span>${esc(autorDe(r.t))}, ${r.n} ${r.n === 1 ? 'valoración' : 'valoraciones'}</span>
+          </div>
+          <span class="pill${r.pr.total === null ? '' : ' fuerte'}">${fmt(r.pr.total)}</span>
+        </div>
+        <table>${criterios().map(c => `
+          <tr>
+            <td>${esc(c.nombre)}
+              <div class="track"><i style="width:${r.pr[c.id] ? (r.pr[c.id]/5*100) : 0}%"></i></div>
+            </td>
+            <td class="num">${fmt(r.pr[c.id])}</td>
+          </tr>`).join('')}</table>
+      </div>`).join('')}
+
+    ${hayDatos ? `
+      <div style="padding:18px 0 0;border-top:2px solid var(--line);margin-top:6px">
+        <p class="kicker" style="margin-bottom:8px">El grupo entero, criterio por criterio</p>
+        <table>${criterios().map(c => `
+          <tr>
+            <td>${esc(c.nombre)}
+              <div class="track"><i style="width:${ses[c.id] ? (ses[c.id]/5*100) : 0}%"></i></div>
+            </td>
+            <td class="num">${fmt(ses[c.id])}</td>
+          </tr>`).join('')}</table>
+        <p class="sub" style="margin-top:10px">Promedio de los textos de esta sesión, juntos. Sirve para ver qué está flojo en el grupo, no quién.</p>
+      </div>` : ''}
+  </div>`;
+}
+
+/* ---------------------------- interacción -------------------------- */
+function conectar(){
+  const campos = {f_fecha:'fecha', f_nombre:'nombre', f_titulo:'titulo',
+                  f_autor:'autor', f_taller:'taller', f_rol:'rol'};
+  for(const [id, k] of Object.entries(campos)){
+    const el = document.getElementById(id);
+    if(el) el.oninput = el.onchange = () => { borrador[k] = el.value; };
+  }
+
+  const caja = document.getElementById('comentario');
+  if(caja) caja.oninput = () => {
+    comentario = caja.value;
+    const c = document.getElementById('cuenta_com');
+    if(c) c.textContent = `${comentario.length} de 1000`;
+  };
+
+  document.querySelectorAll('[data-crit]').forEach(b => b.onclick = () => {
+    seleccion[b.dataset.crit] = Number(b.dataset.val);
+    render();
+  });
+
+  const local = (f) => { f(); guardarUI(); render(); };
+
+  document.querySelectorAll('[data-act]').forEach(b => b.onclick = async ev => {
+    ev.preventDefault();
+    const a = b.dataset.act;
+
+    // --- puras de pantalla, no tocan la base ---
+    if(a === 'ir')            return local(() => { location.hash = b.dataset.hash; });
+    if(a === 'ir_perfil'){
+      pantalla = 'perfil'; render();
+      await traerLoMio();
+      return render();
+    }
+    if(a === 'tema') return local(() => {
+      const nuevo = temaActual() === 'tinta' ? 'papel' : 'tinta';
+      try { localStorage.setItem(TEMA_KEY, nuevo); } catch(e){}
+      aplicarTema(nuevo);
+    });
+    if(a === 'cancelar_perfil') return local(() => {
+      pantalla = 'entrar';
+      if(!soyAdmin()) location.hash = '#/';
+    });
+    if(a === 'orden')         return local(() => { D.estado.orden_resultados = b.dataset.orden; });
+    if(a === 'resultados')    return local(() => { D.estado.resultados_visibles = !D.estado.resultados_visibles; });
+    if(a === 'ver_sesion')    return local(() => { D.estado.sesion_vista = b.dataset.sesion;
+                                                   D.estado.resultados_visibles = false; });
+    if(a === 'ir_taller'){
+      const t = D.talleres.find(x => x.id === b.dataset.taller);
+      if(t) location.hash = rutaDe(t);
+      return;
+    }
+
+    if(a === 'entrar')  return sb.auth.signInWithOAuth({ provider:'discord',
+                                options:{ redirectTo: location.origin + location.pathname } });
+    if(a === 'salir')   { await sb.auth.signOut(); yo = null; pantalla = 'entrar';
+                          location.hash = '#/'; await cargar(); return render(); }
+
+    // --- escrituras ---
+    if(a === 'enviar'){
+      await guardarEvaluacion(D.estado.texto_activo, yo, seleccion);
+      seleccion = {}; comentario = ''; return;
+    }
+    if(a === 'pedir_borrar')    return local(() => { borrarSesion = b.dataset.sesion; });
+    if(a === 'cancelar_borrar') return local(() => { borrarSesion = null; });
+    if(a === 'cerrar_aviso')    return local(() => { mensajeError = ''; });
+    if(a === 'plegar') return local(() => {
+      const k = b.dataset.clave;
+      D.estado.paneles = D.estado.paneles || {};
+      D.estado.paneles[k] = !estaAbierta(k, b.getAttribute('aria-expanded') === 'true');
+    });
+    if(a === 'pedir_alta')      return local(() => { confirmarAlta = true; });
+    if(a === 'inscribir_por_roles'){
+      const { data, error } = await sb.rpc('inscribir_por_roles');
+      if(error){ avisar(error.message); return render(); }
+      avisar(data === 0
+        ? 'Nadie quedaba por inscribir: todos ya están en los talleres de su rol.'
+        : `${data} ${data === 1 ? 'inscripción nueva' : 'inscripciones nuevas'} según el rol de Discord.`);
+      await cargar(); return render();
+    }
+    if(a === 'cancelar_alta')   return local(() => { confirmarAlta = false; });
+    if(a === 'confirmar_alta'){
+      confirmarAlta = false;
+      const t = tallerActivo();
+      const porId = new Map(D.discord.map(m => [m.discord_id, m]));
+      const porNom = new Map(D.discord.map(m => [(m.username||'').toLowerCase(), m]));
+      const enSrv = p => porId.get(p.discord_id) || porNom.get((handle(p)||'').toLowerCase()) || null;
+      const rol = t.discord_role_id || '';
+      const yaDentro = new Set(inscritosDe(t.id).map(p => p.id));
+      const nuevos = D.participantes.filter(p => {
+        if(yaDentro.has(p.id)) return false;
+        const m = enSrv(p);
+        return m && !m.es_bot && rol && (m.roles || []).includes(rol);
+      }).map(p => ({taller_id: t.id, perfil_id: p.id}));
+      if(!nuevos.length) return render();
+      return aplicar(() => sb.from('inscripciones').insert(nuevos));
+    }
+    if(a === 'confirmar_borrar'){
+      const id = b.dataset.sesion;
+      borrarSesion = null;
+      // Si era la que estaba en vivo o la que estás viendo, hay que soltarla
+      // antes de que la fila desaparezca debajo de la vista.
+      if(D.estado.sesion_vista === id) D.estado.sesion_vista = null;
+      if(D.estado.sesion_en_vivo === id) D.estado.sesion_en_vivo = null;
+      return aplicar(() => sb.from('sesiones').delete().eq('id', id));
+    }
+    if(a === 'cancelar_paso')  return local(() => { confirmarPaso = null; });
+    if(a === 'confirmar_paso'){
+      const destino = confirmarPaso ? confirmarPaso.destino : null;
+      confirmarPaso = null;
+      return aplicar(() => sb.from('sesiones')
+        .update({texto_en_concurso_id: destino}).eq('id', D.estado.sesion_en_vivo));
+    }
+    if(a === 'abrir' || a === 'cerrar'){
+      const destino = (a === 'abrir') ? b.dataset.texto : null;
+      const actual  = D.estado.texto_activo ? texto(D.estado.texto_activo) : null;
+      // Solo se pregunta si hay alguien a medio camino en el texto que está abierto.
+      if(actual && actual.id !== destino && pendientesDe(actual) > 0){
+        confirmarPaso = { destino };
+        return render();
+      }
+      confirmarPaso = null;
+      return aplicar(() => sb.from('sesiones')
+        .update({texto_en_concurso_id: destino}).eq('id', D.estado.sesion_en_vivo));
+    }
+
+    if(a === 'poner_aire')  return aplicar(() => sb.from('talleres')
+      .update({sesion_en_vivo_id: b.dataset.sesion}).eq('id', D.estado.taller_activo));
+    if(a === 'quitar_aire') return aplicar(() => sb.from('talleres')
+      .update({sesion_en_vivo_id: null}).eq('id', D.estado.taller_activo));
+
+    if(a === 'cerrar_sesion') return aplicar(() => sb.from('sesiones')
+      .update({fase:'cerrada', texto_en_concurso_id:null}).eq('id', D.estado.sesion_vista));
+    if(a === 'reabrir') return aplicar(() => sb.from('sesiones')
+      .update({fase:'en_curso'}).eq('id', D.estado.sesion_vista));
+
+    if(a === 'borrar_texto') return aplicar(() => sb.from('textos')
+      .delete().eq('id', b.dataset.texto));
+
+    if(a === 'inscribir') return aplicar(() => sb.from('inscripciones')
+      .insert({taller_id: b.dataset.taller || D.estado.taller_activo,
+               perfil_id: b.dataset.persona}));
+    if(a === 'desinscribir') return aplicar(() => sb.from('inscripciones')
+      .delete().eq('taller_id', b.dataset.taller || D.estado.taller_activo)
+      .eq('perfil_id', b.dataset.persona));
+
+    if(a === 'guardar_rol'){
+      const v = (document.getElementById('f_rol').value || '').trim();
+      delete borrador.rol;
+      return aplicar(() => sb.from('talleres')
+        .update({discord_role_id: v || null}).eq('id', D.estado.taller_activo));
+    }
+    if(a === 'sync_discord'){
+      if(sincronizando) return;
+      sincronizando = true; render();
+      const { data, error } = await sb.functions.invoke('sync-discord');
+      sincronizando = false;
+      if(error || (data && data.error)){
+        let msg = (data && data.error) || (error && error.message) || 'no se pudo sincronizar';
+        // supabase-js esconde el cuerpo del error detrás de un mensaje genérico.
+        if(error && error.context && typeof error.context.json === 'function'){
+          try { const cuerpo = await error.context.json();
+                if(cuerpo && cuerpo.error) msg = cuerpo.error +
+                  (cuerpo.detalle ? '. ' + String(cuerpo.detalle).slice(0,400) : '');
+          } catch(e){}
+        }
+        console.error('sync-discord:', msg, error);
+        avisar(msg);
+        return render();
+      }
+      mensajeError = '';
+      await cargar(); return render();
+    }
+    if(a === 'crear_taller'){
+      const nombre = (document.getElementById('f_taller').value || '').trim();
+      if(!nombre) return;
+      borrador.taller = '';
+      const slug = nombre.toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      return aplicar(() => sb.from('talleres').insert({nombre, slug}));
+    }
+    if(a === 'crear_sesion'){
+      const fecha  = document.getElementById('f_fecha').value || hoyISO();
+      const nombre = (document.getElementById('f_nombre').value || '').trim();
+      borrador.fecha = ''; borrador.nombre = '';
+      return aplicar(() => sb.from('sesiones').insert({
+        taller_id: D.estado.taller_activo, fecha,
+        nombre: nombre || 'Sesión del ' + fechaLarga(fecha)
+      }));
+    }
+    if(a === 'agregar_texto'){
+      const titulo = (document.getElementById('f_titulo').value || '').trim();
+      const autor  = (document.getElementById('f_autor').value || '').trim();
+      if(!titulo || !autor) return;
+      // Si lo escrito coincide con alguien registrado, se enlaza al perfil:
+      // solo así el sistema sabe que ese texto es suyo y no se lo deja calificar.
+      const match = D.participantes.find(x =>
+        nom(x).toLocaleLowerCase('es') === autor.toLocaleLowerCase('es'));
+      const hermanos = textosDe(D.estado.sesion_vista);
+      const orden = hermanos.length ? Math.max(...hermanos.map(t => t.orden)) + 1 : 1;
+      borrador.titulo = ''; borrador.autor = '';
+      return aplicar(() => sb.from('textos').insert({
+        sesion_id: D.estado.sesion_vista, orden, titulo,
+        autor_id: match ? match.id : null, autor_nombre: autor
+      }));
+    }
+    if(a === 'guardar_perfil'){
+      const nombre   = (document.getElementById('p_nombre').value || '').trim();
+      const apellido = (document.getElementById('p_apellido').value || '').trim();
+      if(!nombre || !apellido){
+        const el = document.getElementById('p_error');
+        if(el) el.textContent = 'Falta el nombre o el apellido.';
+        return;
+      }
+      pantalla = 'entrar';
+      return aplicar(() => sb.from('perfiles').update({nombre, apellido}).eq('id', yo));
+    }
+  });
+}
+
+/* ------------------------------ arranque --------------------------- */
+// Lo que el usuario escribió en la barra, antes de que nadie lo toque.
+const rutaPedida = (location.hash && location.hash !== '#/') ? location.hash : '';
+
+async function arrancar(){
+  const { data:{ session } } = await sb.auth.getSession();
+  yo = session ? session.user.id : null;
+
+  await cargar();
+
+  if(yo){
+    const p = persona(yo);
+    // Discord da apodo, no nombre de autor: si falta, se pide de entrada.
+    if(p && (!p.nombre || !p.apellido)) pantalla = 'perfil';
+    // Solo mandamos al panel si no venía con una ruta propia. Antes esto
+    // machacaba el hash y se perdía el taller de #/panel/invisibles.
+    const h = location.hash || '';
+    if(p && p.rol === 'admin' && (h === '' || h === '#')) location.hash = '#/panel';
+    // supabase-js limpia el hash al arrancar cuando detecta la vuelta del OAuth,
+    // y con ella se llevaba la ruta pedida. Se restaura si eso pasó.
+    if(rutaPedida && location.hash !== rutaPedida) location.hash = rutaPedida;
+    await refrescarResultados();
+    traerLoMio();
+  }
+  render();
+
+  // Realtime: cuando cambia el texto en concurso, la pantalla salta sola.
+  sb.channel('sala')
+    .on('postgres_changes', { event:'*', schema:'semillero' }, async () => {
+      if(pantalla !== 'entrar') return;      // no pisar un formulario abierto
+      await cargar();
+      await refrescarResultados();           // la sesión pudo haberse cerrado
+      render();
+    })
+    .subscribe();
+
+  sb.auth.onAuthStateChange((_e, ses) => {
+    const nuevo = ses ? ses.user.id : null;
+    if(nuevo !== yo){ yo = nuevo; arrancar(); }
+  });
+}
+
+// Al cambiar de ruta hay que recalcular qué taller se está viendo, no solo repintar.
+window.addEventListener('hashchange', () => { derivar(); render(); });
+arrancar();
+</script>
+</body>
+</html>
