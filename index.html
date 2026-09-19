@@ -1604,8 +1604,13 @@ function conectar(){
     comentario = caja.value;
     const c = document.getElementById('cuenta_com');
     if(c) c.textContent = `${comentario.length} de 1000`;
-    // Re-render para actualizar el estado del botón Enviar (ahora depende del comentario)
-    render();
+    // Actualizar solo el botón sin redraw completo (evita cerrar el textarea en mobile)
+    const btn = document.querySelector('[data-act="enviar"]');
+    if(btn) {
+      const tieneComentario = comentario.trim().length > 0;
+      if(tieneComentario) btn.removeAttribute('disabled');
+      else btn.setAttribute('disabled', 'disabled');
+    }
   };
 
   document.querySelectorAll('[data-crit]').forEach(b => b.onclick = () => {
