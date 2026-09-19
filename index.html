@@ -576,7 +576,8 @@ let seleccion = {};
 let comentario = '';       // lo que va escribiendo quien califica
 let ultimoTextoActivo = null;
 let borrador = {fecha:'', nombre:'', titulo:'', autor:'', taller:''};
-let pantalla = 'entrar';        // 'entrar' | 'perfil'
+let pantalla = 'entrar';        // 'entrar' | 'perfil' | 'sesion'
+let entroASesion = false;       // ¿El participante ya hizo click en "Entrar a la sesión"?
 let confirmarPaso = null;       // {destino} cuando falta gente por enviar
 let borrarSesion = null;        // id de la sesión esperando confirmación
 let sincronizando = false;
@@ -711,6 +712,28 @@ function vistaParticipante(){
     return `<div class="notice">
       <strong>Esta sesión no es de tu taller</strong>
       <span>Está en vivo ${esc(taller(ses.taller_id).nombre)}, y no apareces inscrito ahí.</span>
+    </div>` + pie;
+  }
+
+  // Pantalla de bienvenida a la sesión (no entra automáticamente)
+  if(!entroASesion && ses.fase !== 'cerrada'){
+    return `<div style="max-width:640px;margin:0 auto;padding:20px 16px;display:flex;flex-direction:column;gap:24px;position:relative;z-index:1">
+      <div class="card" style="text-align:center;padding:40px 20px">
+        <div style="margin-bottom:20px;font-size:48px">🎯</div>
+        <h2 style="margin-bottom:12px">La sesión está en vivo</h2>
+        <p class="sub" style="margin-bottom:24px">
+          <strong>${esc(ses.nombre)}</strong><br>
+          ${fechaLarga(ses.fecha)}<br>
+          <span style="font-size:13px;color:var(--muted)">${textosDe(ses.id).length} textos para calificar</span>
+        </p>
+        <button class="primary" data-act="entrar_sesion" style="padding:16px 32px;font-size:16px;width:100%;max-width:400px">
+          Entrar a la sesión
+        </button>
+      </div>
+      <div class="card">
+        <h3>¿Cómo funciona?</h3>
+        ${comoFunciona()}
+      </div>
     </div>` + pie;
   }
 
@@ -1598,6 +1621,7 @@ function conectar(){
 
     // --- puras de pantalla, no tocan la base ---
     if(a === 'ir')            return local(() => { location.hash = b.dataset.hash; });
+    if(a === 'entrar_sesion') return local(() => { entroASesion = true; });
     if(a === 'ir_perfil'){
       pantalla = 'perfil'; render();
       await traerLoMio();
