@@ -787,7 +787,7 @@ function vistaParticipante(){
 
       <div class="crit">
         <h3>Algo que quieras decirle</h3>
-        <p>Opcional. Quien escribió el texto lo va a leer al final de la sesión,
+        <p><strong>Obligatorio.</strong> Quien escribió el texto lo va a leer al final de la sesión,
           sin saber que fue tuyo.</p>
         <textarea id="comentario" maxlength="1000" rows="5"
           placeholder="Lo que te pasó al leerlo, lo que te sobró, lo que te quedó sonando."
@@ -1581,6 +1581,8 @@ function conectar(){
     comentario = caja.value;
     const c = document.getElementById('cuenta_com');
     if(c) c.textContent = `${comentario.length} de 1000`;
+    // Re-render para actualizar el estado del botón Enviar (ahora depende del comentario)
+    render();
   };
 
   document.querySelectorAll('[data-crit]').forEach(b => b.onclick = () => {
