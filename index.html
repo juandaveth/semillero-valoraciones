@@ -319,6 +319,25 @@ let D = {
   resultadosRPC:{},                    // promedios que llegan por función, para no-admin
   comentarios:{},                      // texto_id -> comentarios, sin quién los escribió
   misTextos:[], misComentarios:{},     // lo propio, sin depender de la sesión en vivo
+  // Detonantes creativos y fanzines por sesión (Narradores Invisibles)
+  documentosSesion: {
+    'Sesión 4': {
+      detonante: { nombre: 'Lo irreversible', url: 'https://discord.com/channels/1537465513322610808/1537467753613492234/1549468937287376896' },
+      fanzine: { url: 'https://discord.com/channels/1537465513322610808/1537472930089275522/1549102055933739108' }
+    },
+    'Sesión 3': {
+      detonante: { nombre: 'Con los años', url: 'https://discord.com/channels/1537465513322610808/1537467753613492234/1546906279321010277' },
+      fanzine: { url: 'https://discord.com/channels/1537465513322610808/1537472930089275522/1549102055933739108' }
+    },
+    'Sesión 2': {
+      detonante: { nombre: 'Narradores Algorítmico', url: 'https://discord.com/channels/1537465513322610808/1537467753613492234/1544353461145960609' },
+      fanzine: { url: 'https://discord.com/channels/1537465513322610808/1537467392740032573/1544344569997561928' }
+    },
+    'Sesión 1': {
+      detonante: { nombre: 'Narradores Arqueólogos', url: 'https://discord.com/channels/1537465513322610808/1537467753613492234/1541823078726631424' },
+      fanzine: { url: 'https://discord.com/channels/1537465513322610808/1537467392740032573/1544344569997561928' }
+    }
+  },
   estado: Object.assign({
     taller_activo:null, sesion_vista:null, sesion_en_vivo:null,
     texto_activo:null, resultados_visibles:false, orden_resultados:'lectura',
@@ -898,7 +917,7 @@ function formularioPerfil(p){
       <button class="ghost" data-act="cancelar_perfil">Volver al inicio</button>
       <button class="primary" data-act="guardar_perfil">Guardar</button>
     </div>
-  </div>` + misTextosCalificados();
+  </div>` + documentosPorSesion() + misTextosCalificados();
 }
 
 // Todo lo que le han calificado a esta persona, de todas las sesiones.
@@ -944,6 +963,47 @@ function misTextosCalificados(){
           ${coms.length === 1 ? 'comentario' : 'comentarios'}, sin nombres y en desorden.</p>
           ${coms.map(c => `<blockquote class="comentario">${esc(c)}</blockquote>`).join('')}`
           : (t.listo ? '<p class="sub">Nadie dejó comentario.</p>' : '')}
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+// Documentos de cada sesión: detonantes y fanzines
+function documentosPorSesion(){
+  const sesiones = Object.entries(D.documentosSesion).reverse(); // orden inverso (sesión 1 primero)
+  if(!sesiones.length) return '';
+
+  return `<div class="card">
+    <h2>Detonantes y Fanzines</h2>
+    <p class="sub" style="margin-bottom:6px">Los detonantes creativos y fanzines de cada sesión.
+      Entra en los links para verlos completos en Discord.</p>
+    ${sesiones.map(([nombreSesion, docs]) => {
+      const tieneDetonante = docs.detonante && docs.detonante.url;
+      const tieneFanzine = docs.fanzine && docs.fanzine.url;
+      if(!tieneDetonante && !tieneFanzine) return '';
+
+      return `<div style="padding:16px 0;border-top:1px solid var(--hair)">
+        <b style="display:block;margin-bottom:12px">${esc(nombreSesion)}</b>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          ${tieneDetonante ? `
+            <a href="${tieneDetonante ? docs.detonante.url : '#'}"
+               target="_blank" rel="noopener noreferrer"
+               style="padding:12px;background:var(--panel-2);border-radius:4px;text-decoration:none;color:var(--ink);border:1px solid var(--line);transition:all .2s">
+              <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Detonante</div>
+              <div style="font-weight:600;font-size:14px">${esc(docs.detonante.nombre)}</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:4px">↗ Ir a Discord</div>
+            </a>
+          ` : ''}
+          ${tieneFanzine ? `
+            <a href="${docs.fanzine.url}"
+               target="_blank" rel="noopener noreferrer"
+               style="padding:12px;background:var(--panel-2);border-radius:4px;text-decoration:none;color:var(--ink);border:1px solid var(--line);transition:all .2s">
+              <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Fanzine</div>
+              <div style="font-weight:600;font-size:14px">Ver publicación</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:4px">↗ Ir a Discord</div>
+            </a>
+          ` : ''}
+        </div>
       </div>`;
     }).join('')}
   </div>`;
