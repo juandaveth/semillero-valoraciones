@@ -387,11 +387,14 @@ async function cargar(){
 
 // Traduce lo que está en la base al estado que las vistas ya sabían leer.
 function derivar(){
-  // En el panel, el taller lo dice la URL. Fuera del panel, el último usado.
+  // En el panel, el taller lo dice la URL. Fuera del panel, el último usado o el primero.
   const porRuta = ruta().seccion === 'panel' ? tallerPorSlug(ruta().slug) : null;
   const t = porRuta || D.talleres.find(x => x.id === D.estado.taller_activo) || D.talleres[0];
   D.estado.taller_activo  = t ? t.id : null;
-  D.estado.sesion_en_vivo = t ? t.sesion_en_vivo_id : null;
+  // Para participantes no-admin, siempre usa el taller por defecto (Narradores Invisibles)
+  // para que vean la sesión en vivo correctamente
+  if(!soyAdmin() && !porRuta) D.estado.taller_activo = D.talleres[0] ? D.talleres[0].id : null;
+  D.estado.sesion_en_vivo = D.talleres.find(x => x.id === D.estado.taller_activo) ? D.talleres.find(x => x.id === D.estado.taller_activo).sesion_en_vivo_id : null;
 
   // No basta con que la sesión exista: tiene que ser de ESTE taller. Si no,
   // al cambiar de ruta seguirías viendo los textos del taller anterior.
