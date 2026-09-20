@@ -701,10 +701,14 @@ function vistaParticipante(){
 
   const ses = sesionEnVivo();
   if(!ses){
-    return `<div class="notice">
-      <strong>No hay sesión en vivo</strong>
-      <span>Cuando alguien del equipo del Semillero ponga la sesión en el aire,
-      aparece aquí.</span>
+    return `<div style="max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:24px">
+      <div class="card" style="text-align:center;padding:40px 20px;background:linear-gradient(135deg, rgba(139, 92, 246, 0.05) 0%, rgba(16, 185, 129, 0.05) 100%)">
+        <div style="margin-bottom:20px;font-size:48px">📚</div>
+        <h2 style="margin:0 0 12px">En espera de la próxima sesión</h2>
+        <p class="sub" style="margin-bottom:24px">Mientras tanto, conoce el trabajo de tus compañeros y sus fortalezas en la escritura.</p>
+        <button class="primary" data-act="ver_ranking" style="padding:14px 28px;font-size:15px">Ver ranking creativo</button>
+      </div>
+      ${mostrarRankingHome()}
     </div>` + comoFunciona() + pie;
   }
   if(!estaInscrito(ses.taller_id, yo)){
@@ -950,6 +954,33 @@ function formularioPerfil(p){
     </div>
   </div>` + plegable('detonantes', documentosPorSesion(), true)
     + plegable('textos_calificados', misTextosCalificados(), true);
+}
+
+// Mostrar ranking creativo en el home (cuando no hay sesión en vivo)
+function mostrarRankingHome(){
+  // Obtener todos los textos con calificaciones (promedios)
+  const textosCon = D.misTextos.slice(0, 3); // Top 3 textos
+  if(!textosCon.length) return '';
+
+  return `<div class="card">
+    <h2>✨ Textos destacados</h2>
+    <p class="sub" style="margin-bottom:16px">Los mejores trabajos calificados hasta ahora</p>
+    ${textosCon.map(t => {
+      const prom = D.estado.texto_activo ? null : null; // Obtener promedio si está disponible
+      return `<div style="padding:16px 0;border-top:1px solid var(--hair)">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+          <div style="flex:1;min-width:0">
+            <h3 style="margin:0 0 4px;font-size:15px;font-weight:600">${esc(t.titulo)}</h3>
+            <p style="margin:0;color:var(--muted);font-size:13px">${esc(t.sesion || 'Sesión reciente')}</p>
+          </div>
+          <span class="pill fuerte">${t.promedio ? Number(t.promedio).toFixed(1) : '—'}</span>
+        </div>
+      </div>`;
+    }).join('')}
+    <div style="padding-top:16px;margin-top:16px;border-top:1px solid var(--hair)">
+      <button class="ghost" data-act="ver_ranking" style="width:100%;text-align:center">Ver todos los textos →</button>
+    </div>
+  </div>`;
 }
 
 // Todo lo que le han calificado a esta persona, de todas las sesiones.
@@ -1625,6 +1656,7 @@ function conectar(){
 
     // --- puras de pantalla, no tocan la base ---
     if(a === 'ir')            return local(() => { location.hash = b.dataset.hash; });
+    if(a === 'ver_ranking')   return local(() => { window.open('https://claude.ai/artifact/L96P7hdh2hnpBTvwbcuogS', '_blank'); });
     if(a === 'entrar_sesion') return local(() => { entroASesion = true; });
     if(a === 'ir_perfil'){
       pantalla = 'perfil'; render();
