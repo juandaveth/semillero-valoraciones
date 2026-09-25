@@ -833,9 +833,18 @@ function vistaParticipante(){
     </div>`;
     if(!listo) return cabeza + `<div class="card"><p class="sub">Cargando los resultados…</p></div>` + pie;
     const mio = textosDe(ses.id).filter(t => t.autor_id === yo);
+
+    const siguienteSesion = sesionesDe(ses.taller_id).find(s => s.fecha > ses.fecha);
+    const botonSiguiente = siguienteSesion ?
+      `<div style="margin-top:16px;text-align:center">
+        <button class="primary" data-act="ir_sesion" data-sesion="${siguienteSesion.id}" style="padding:12px 32px">
+          Siguiente sesión: ${esc(siguienteSesion.nombre)}
+        </button>
+      </div>` : '';
+
     return cabeza + bloqueResultados(ses, 'Resultados de la sesión',
       'Promedio de 1 a 5. Cambia entre el orden del fanzine y el ranking.')
-      + bloqueComentarios(mio, 'Lo que te escribieron') + pie;
+      + bloqueComentarios(mio, 'Lo que te escribieron') + botonSiguiente + pie;
   }
 
   const activo = D.estado.texto_activo ? texto(D.estado.texto_activo) : null;
@@ -1816,6 +1825,9 @@ function conectar(){
     if(a === 'orden')         return local(() => { D.estado.orden_resultados = b.dataset.orden; });
     if(a === 'resultados')    return local(() => { D.estado.resultados_visibles = !D.estado.resultados_visibles; });
     if(a === 'ver_sesion')    return local(() => { D.estado.sesion_vista = b.dataset.sesion;
+                                                   D.estado.resultados_visibles = false; });
+    if(a === 'ir_sesion')     return local(() => { D.estado.sesion_vista = b.dataset.sesion;
+                                                   entroASesion = false;
                                                    D.estado.resultados_visibles = false; });
     if(a === 'ir_taller'){
       const t = D.talleres.find(x => x.id === b.dataset.taller);
