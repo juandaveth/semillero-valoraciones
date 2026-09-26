@@ -1578,6 +1578,7 @@ function cardSesiones(){
       <button class="ghost ${aire ? 'vivo' : ''}" data-act="${aire ? 'quitar_aire' : 'poner_aire'}" data-sesion="${s.id}">
         ${aire ? 'Sacar del aire' : 'Poner en vivo'}
       </button>
+      <button class="chip" data-act="copiar_sesion" data-id="${s.id}" title="Copiar enlace /sesion/${s.id}">/sesion/${s.id}</button>
       <button class="link" data-act="pedir_borrar" data-sesion="${s.id}">borrar</button>
     </div>`;
   }).join('');
