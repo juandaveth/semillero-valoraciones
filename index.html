@@ -677,8 +677,7 @@ function ruta(){
 }
 const modo = () => (ruta().seccion === 'panel' && soyAdmin() ? 'panel' : 'participante');
 const tallerPorSlug = sl => D.talleres.find(t => t.slug === sl) || null;
-const generarSlug = nombre => nombre.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-const sesionPorSlug = sl => D.sesiones.find(s => generarSlug(s.nombre) === sl) || null;
+const sesionPorSlug = sl => D.sesiones.find(s => String(s.id) === sl) || null;
 const rutaDe = t => '#/panel/' + (t.slug || '');
 const fmt  = n => (n === null || n === undefined ? '—' : n.toFixed(1));
 const fmt2 = n => (n === null || n === undefined ? '—' : n.toFixed(2));
@@ -750,7 +749,7 @@ function cabecera(){
 
   const oscuro = temaActual() === 'tinta';
   const quien  = yo ? persona(yo) : null;
-  const sesionLink = enVivo ? `<button class="chip" data-act="copiar_sesion" data-slug="${generarSlug(enVivo.nombre)}" title="Copiar enlace de sesión">🔗</button>` : '';
+  const sesionLink = enVivo ? `<button class="chip" data-act="copiar_sesion" data-id="${enVivo.id}" title="Copiar enlace de sesión">🔗</button>` : '';
   const herramientas = `
     <div class="toolbar">
       ${tabs}
@@ -1839,8 +1838,8 @@ function conectar(){
                                                    entroASesion = false;
                                                    D.estado.resultados_visibles = false; });
     if(a === 'copiar_sesion') {
-      const slug = b.dataset.slug;
-      const url = location.origin + location.pathname + '#/sesion/' + slug;
+      const id = b.dataset.id;
+      const url = location.origin + location.pathname + '#/sesion/' + id;
       navigator.clipboard.writeText(url).then(() => {
         mensajeError = '✓ Enlace copiado: ' + url;
         setTimeout(() => { mensajeError = ''; render(); }, 3000);
