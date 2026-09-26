@@ -1796,6 +1796,7 @@ function conectar(){
     comentario = caja.value;
     const c = document.getElementById('cuenta_com');
     if(c) c.textContent = `${comentario.length} de 1000`;
+    render();
   };
 
   document.querySelectorAll('[data-crit]').forEach(b => b.onclick = () => {
