@@ -677,7 +677,7 @@ function ruta(){
 }
 const modo = () => (ruta().seccion === 'panel' && soyAdmin() ? 'panel' : 'participante');
 const tallerPorSlug = sl => D.talleres.find(t => t.slug === sl) || null;
-const sesionPorSlug = sl => D.sesiones.find(s => String(s.id) === sl) || null;
+const sesionPorSlug = sl => D.sesiones.find(s => s.slug === sl) || null;
 const rutaDe = t => '#/panel/' + (t.slug || '');
 const fmt  = n => (n === null || n === undefined ? '—' : n.toFixed(1));
 const fmt2 = n => (n === null || n === undefined ? '—' : n.toFixed(2));
@@ -1568,17 +1568,18 @@ function cardSesiones(){
       </div>`;
     }
     return `<div class="row ${viendo ? 'sel' : ''}">
-      <div class="who">
+      <div class="who" style="flex:1">
         <b>${esc(s.nombre)}</b>
         <span>${fechaLarga(s.fecha)}, ${n} ${n === 1 ? 'texto' : 'textos'}, ${votos} ${votos === 1 ? 'valoración' : 'valoraciones'}</span>
       </div>
+      <input type="text" class="slug-input" value="${esc(s.slug || '')}" placeholder="slug" data-sesion="${s.id}" style="width:120px;font-size:12px;padding:4px 8px">
       ${aire ? '<span class="pill aire">En vivo</span>' : ''}
       <span class="pill${s.fase === 'en_curso' ? ' ok' : ''}">${s.fase === 'en_curso' ? 'Abierta' : 'Cerrada'}</span>
       ${viendo ? '' : `<button class="ghost" data-act="ver_sesion" data-sesion="${s.id}">Ver</button>`}
       <button class="ghost ${aire ? 'vivo' : ''}" data-act="${aire ? 'quitar_aire' : 'poner_aire'}" data-sesion="${s.id}">
         ${aire ? 'Sacar del aire' : 'Poner en vivo'}
       </button>
-      <button class="chip" data-act="copiar_sesion" data-id="${s.id}" title="Copiar enlace /sesion/${s.id}">/sesion/${s.id}</button>
+      <button class="chip" data-act="copiar_sesion" data-id="${s.id}" title="Copiar enlace /sesion/${s.slug || s.id}">/sesion/${s.slug || s.id}</button>
       <button class="link" data-act="pedir_borrar" data-sesion="${s.id}">borrar</button>
     </div>`;
   }).join('');
@@ -1808,6 +1809,17 @@ function conectar(){
     render();
   });
 
+  document.querySelectorAll('.slug-input').forEach(inp => {
+    inp.onblur = async () => {
+      const sesionId = inp.dataset.sesion;
+      const nuevoSlug = inp.value.trim();
+      if(!nuevoSlug) return;
+      const ses = sesion(sesionId);
+      if(!ses || ses.slug === nuevoSlug) return;
+      await aplicar(() => sb.schema('semillero').from('sesiones').update({slug: nuevoSlug}).eq('id', sesionId));
+    };
+  });
+
   const local = (f) => { f(); guardarUI(); render(); };
 
   document.querySelectorAll('[data-act]').forEach(b => b.onclick = async ev => {
@@ -1840,7 +1852,9 @@ function conectar(){
                                                    D.estado.resultados_visibles = false; });
     if(a === 'copiar_sesion') {
       const id = b.dataset.id;
-      const url = location.origin + location.pathname + '#/sesion/' + id;
+      const ses = sesion(id);
+      const slug = ses && ses.slug ? ses.slug : id;
+      const url = location.origin + location.pathname + '#/sesion/' + slug;
       navigator.clipboard.writeText(url).then(() => {
         mensajeError = '✓ Enlace copiado: ' + url;
         setTimeout(() => { mensajeError = ''; render(); }, 3000);
