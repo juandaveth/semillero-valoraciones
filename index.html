@@ -673,10 +673,12 @@ const soyAdmin = () => !!(yo && persona(yo) && persona(yo).rol === 'admin');
 // #/panel/invisibles panel de ese taller
 function ruta(){
   const partes = (location.hash || '#/').replace(/^#\/?/, '').split('/').filter(Boolean);
-  return { seccion: partes[0] || '', slug: partes[1] || '' };
+  return { seccion: partes[0] || '', slug: partes[1] || '', id: partes[2] || '' };
 }
 const modo = () => (ruta().seccion === 'panel' && soyAdmin() ? 'panel' : 'participante');
 const tallerPorSlug = sl => D.talleres.find(t => t.slug === sl) || null;
+const generarSlug = nombre => nombre.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+const sesionPorSlug = sl => D.sesiones.find(s => generarSlug(s.nombre) === sl) || null;
 const rutaDe = t => '#/panel/' + (t.slug || '');
 const fmt  = n => (n === null || n === undefined ? '—' : n.toFixed(1));
 const fmt2 = n => (n === null || n === undefined ? '—' : n.toFixed(2));
@@ -748,9 +750,11 @@ function cabecera(){
 
   const oscuro = temaActual() === 'tinta';
   const quien  = yo ? persona(yo) : null;
+  const sesionLink = enVivo ? `<button class="chip" data-act="copiar_sesion" data-slug="${generarSlug(enVivo.nombre)}" title="Copiar enlace de sesión">🔗</button>` : '';
   const herramientas = `
     <div class="toolbar">
       ${tabs}
+      ${sesionLink}
       <button class="chip" data-act="tema" aria-label="Cambiar a modo ${oscuro ? 'papel' : 'tinta'}">
         ${oscuro ? 'Papel' : 'Tinta'}
       </button>
@@ -783,7 +787,12 @@ function vistaParticipante(){
       <button class="ghost" data-act="salir">Salir</button>
     </div>`;
 
-  const ses = sesionEnVivo();
+  let ses = sesionEnVivo();
+  const r = ruta();
+  if(r.seccion === 'sesion' && r.slug){
+    ses = sesionPorSlug(r.slug);
+    if(ses && !estaInscrito(ses.taller_id, yo)) ses = null;
+  }
   if(!ses){
     return `<div style="max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:24px">
       <div class="card" style="text-align:center;padding:40px 20px;background:linear-gradient(135deg, rgba(139, 92, 246, 0.05) 0%, rgba(16, 185, 129, 0.05) 100%)">
@@ -1829,6 +1838,16 @@ function conectar(){
     if(a === 'ir_sesion')     return local(() => { D.estado.sesion_vista = b.dataset.sesion;
                                                    entroASesion = false;
                                                    D.estado.resultados_visibles = false; });
+    if(a === 'copiar_sesion') {
+      const slug = b.dataset.slug;
+      const url = location.origin + location.pathname + '#/sesion/' + slug;
+      navigator.clipboard.writeText(url).then(() => {
+        mensajeError = '✓ Enlace copiado: ' + url;
+        setTimeout(() => { mensajeError = ''; render(); }, 3000);
+        render();
+      });
+      return;
+    }
     if(a === 'ir_taller'){
       const t = D.talleres.find(x => x.id === b.dataset.taller);
       if(t) location.hash = rutaDe(t);
