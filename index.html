@@ -672,6 +672,7 @@ let ultimoTextoActivo = null;
 let borrador = {fecha:'', nombre:'', titulo:'', autor:'', taller:''};
 let pantalla = 'entrar';        // 'entrar' | 'perfil' | 'sesion'
 let entroASesion = false;       // ¿El participante ya hizo click en "Entrar a la sesión"?
+let previewParticipante = false;// Vista previa como participante desde el panel
 let rankingVisible = false;     // ¿El ranking desplegable está visible?
 let rankingCache = [];          // Cache de datos del ranking
 let confirmarPaso = null;       // {destino} cuando falta gente por enviar
@@ -726,9 +727,9 @@ function render(){
   }
   const page = document.getElementById('page');
   document.getElementById('barmount').innerHTML = '';
-  page.className = 'page' + (modo() === 'panel' ? ' wide' : '');
+  page.className = 'page' + (modo() === 'panel' && !previewParticipante ? ' wide' : '');
   page.innerHTML = cabecera()
-    + (modo() === 'panel' ? vistaPanel() : vistaParticipante())
+    + (previewParticipante ? vistaParticipantePreview() : (modo() === 'panel' ? vistaPanel() : vistaParticipante()))
     + firma();
   conectar();
 }
@@ -787,6 +788,14 @@ function cabecera(){
 }
 
 /* --- participante --- */
+function vistaParticipantePreview(){
+  const cerrar = `<div style="position:sticky;top:0;z-index:10;background:var(--panel);padding:12px;border-bottom:1px solid var(--hair);display:flex;justify-content:space-between;align-items:center">
+    <b style="font-size:13px;color:var(--muted)">🔍 Vista previa: participante</b>
+    <button class="link" data-act="cerrar_preview" style="padding:0;font-size:16px">✕</button>
+  </div>`;
+  return cerrar + vistaParticipante();
+}
+
 function vistaParticipante(){
   if(!yo) return pantallaIngreso();
   if(pantalla === 'perfil') return formularioPerfil(persona(yo));
@@ -1292,6 +1301,7 @@ function cardTaller(){
       <nav class="modes">
         ${D.talleres.map(t => `<a href="${rutaDe(t)}" class="${
           activo && t.id === activo.id ? 'on' : ''}">${esc(t.nombre)}</a>`).join('')}
+        <button class="ghost" data-act="preview_participante" style="font-size:12px">👁 Participante</button>
       </nav>
     </div>
     ${activo ? `<p class="sub" style="font-size:12.5px">
@@ -1963,6 +1973,8 @@ function conectar(){
       return aplicar(() => sb.schema('semillero').from('sesiones')
         .update({deadline: nuevoDeadline}).eq('id', sesionId));
     }
+    if(a === 'preview_participante') return local(() => { previewParticipante = true; });
+    if(a === 'cerrar_preview')       return local(() => { previewParticipante = false; });
     if(a === 'cancelar_paso')  return local(() => { confirmarPaso = null; });
     if(a === 'confirmar_paso'){
       const destino = confirmarPaso ? confirmarPaso.destino : null;
