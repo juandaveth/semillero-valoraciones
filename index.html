@@ -1726,19 +1726,13 @@ function panelEnCurso(s){
   const filas = lista.map(t => {
     const total  = evaluadoresDe(t).length;
     const hechas = enviadasDe(t.id).length;
-    const activo = enVivo && D.estado.texto_activo === t.id;
-    const listo  = !activo && hechas > 0;
-    return `<div class="row">
-      <div class="who">
+    return `<div class="row" draggable="true" data-texto-id="${t.id}" style="cursor:grab;user-select:none">
+      <div class="who" style="flex:1">
+        <b style="color:var(--muted);margin-right:8px">☰</b>
         <b>${t.orden}. ${esc(t.titulo)}</b>
         <span>${esc(autorDe(t))}${t.autor_id ? '' : ' (sin cuenta)'}, ${hechas} de ${total} enviadas</span>
       </div>
-      ${activo ? '<span class="pill aire">En concurso</span>' : ''}
-      ${listo  ? '<span class="pill ok">Listo</span>'         : ''}
-      <button class="ghost" data-act="${activo ? 'cerrar' : 'abrir'}" data-texto="${t.id}" ${enVivo ? '' : 'disabled'}>
-        ${activo ? 'Cerrar' : 'Poner en concurso'}
-      </button>
-      ${hechas === 0 && !activo ? `<button class="link" data-act="borrar_texto" data-texto="${t.id}">quitar</button>` : ''}
+      ${hechas === 0 ? `<button class="link" data-act="borrar_texto" data-texto="${t.id}">quitar</button>` : ''}
     </div>`;
   }).join('');
 
@@ -1919,6 +1913,58 @@ function conectar(){
     const c = document.getElementById('cuenta_com');
     if(c) c.textContent = `${comentario.length} de 1000`;
   };
+
+  // Drag-drop para reordenar textos
+  const textosDraggables = document.querySelectorAll('[data-texto-id]');
+  if(textosDraggables.length){
+    let draggedElement = null;
+    textosDraggables.forEach(el => {
+      el.ondragstart = (e) => {
+        draggedElement = el;
+        el.style.opacity = '0.5';
+        e.dataTransfer.effectAllowed = 'move';
+      };
+      el.ondragend = () => {
+        el.style.opacity = '1';
+        draggedElement = null;
+      };
+      el.ondragover = (e) => {
+        e.preventDefault();
+        if(draggedElement && draggedElement !== el){
+          el.parentNode.insertBefore(draggedElement, el);
+        }
+      };
+      el.ondrop = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      };
+    });
+
+    // Guardar orden después de reordenar
+    const guardarOrdenTextos = async () => {
+      const items = Array.from(document.querySelectorAll('[data-texto-id]'));
+      for(let i = 0; i < items.length; i++){
+        const textoId = items[i].dataset.textoId;
+        const nuevoOrden = i + 1;
+        const textActual = D.textos.find(t => t.id === textoId);
+        if(textActual && textActual.orden !== nuevoOrden){
+          await sb.from('textos').update({orden: nuevoOrden}).eq('id', textoId);
+        }
+      }
+      await cargar();
+    };
+
+    // Guardar orden 500ms después de dejar de mover
+    let timeoutGuardar;
+    textosDraggables.forEach(el => {
+      el.ondragend = () => {
+        el.style.opacity = '1';
+        draggedElement = null;
+        clearTimeout(timeoutGuardar);
+        timeoutGuardar = setTimeout(guardarOrdenTextos, 500);
+      };
+    });
+  }
 
   document.querySelectorAll('[data-crit]').forEach(b => b.onclick = () => {
     seleccion[b.dataset.crit] = Number(b.dataset.val);
