@@ -414,7 +414,9 @@ function derivar(){
     D.estado.sesion_vista = primera ? primera.id : null;
   }
   const viva = D.sesiones.find(x => x.id === D.estado.sesion_en_vivo);
-  D.estado.texto_activo = viva ? viva.texto_en_concurso_id : null;
+  // Mostrar el siguiente texto sin valorar (en lugar de texto_en_concurso_id)
+  const proxTexto = viva && yo ? proximoTextoSinValorar(viva.id, yo) : null;
+  D.estado.texto_activo = proxTexto ? proxTexto.id : null;
 
   // Auto-cerrar sesiones vencidas
   if(viva && viva.deadline && viva.fase !== 'cerrada'){
@@ -493,6 +495,18 @@ function evaluadoresDe(t){
   if(!s) return [];
   return inscritosDe(s.taller_id).filter(p => p.id !== t.autor_id);
 }
+
+// Devuelve el siguiente texto sin valorar por este evaluador, en orden
+function proximoTextoSinValorar(sesion_id, evaluador_id){
+  const textos = textosDe(sesion_id);
+  const evaluaciones = D.evaluaciones.filter(e => e.evaluador_id === evaluador_id);
+  const textosEvaluados = new Set(evaluaciones.map(e => e.texto_id));
+
+  for(const t of textos){
+    if(!textosEvaluados.has(t.id)) return t;
+  }
+  return null; // Todos evaluados
+}
 const evalDe = (texto_id, evaluador_id) =>
   D.evaluaciones.find(e => e.texto_id === texto_id && e.evaluador_id === evaluador_id);
 const enviadasDe = texto_id => D.evaluaciones.filter(e => e.texto_id === texto_id);
@@ -529,7 +543,19 @@ function promedioSesion(sid){
   return out;
 }
 
-async function guardarEvaluacion(texto_id, _evaluador, seleccion){
+async function guardarEvaluacion(texto_id, evaluador_id, seleccion){
+  // Validar que sea el siguiente texto sin valorar
+  const sesActual = sesionEnVivo();
+  if(!sesActual){
+    avisar('❌ No hay sesión en vivo');
+    return;
+  }
+  const proxTexto = proximoTextoSinValorar(sesActual.id, evaluador_id);
+  if(!proxTexto || proxTexto.id !== texto_id){
+    avisar('❌ Debes valorar los textos en orden. Completa el actual primero.');
+    return;
+  }
+
   const mapa = {};
   for(const c of criterios()) mapa[c.id] = seleccion[c.id];
   await aplicar(() => sb.rpc('enviar_valoracion',
