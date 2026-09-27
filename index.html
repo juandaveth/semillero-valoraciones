@@ -2037,7 +2037,13 @@ function conectar(){
 
     // --- escrituras ---
     if(a === 'enviar'){
-      console.log('enviar clicked', {comentarioLen: comentario.trim().length, seenAs, listos: Object.keys(seleccion).length});
+      console.log('enviar clicked', {comentarioLen: comentario.trim().length, seenAs, listos: Object.keys(seleccion).length, textoActivo: D.estado.texto_activo, sesionEnVivo: D.estado.sesion_en_vivo});
+
+      // Validar que haya texto y sesión activos
+      if(!D.estado.texto_activo || !D.estado.sesion_en_vivo){
+        avisar('❌ No hay sesión o texto activo');
+        return;
+      }
 
       // Validar que la sesión no haya vencido
       const sesActual = sesionEnVivo();
