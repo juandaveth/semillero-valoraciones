@@ -1942,9 +1942,11 @@ function conectar(){
 
     // --- escrituras ---
     if(a === 'enviar'){
+      console.log('enviar clicked', {comentarioLen: comentario.trim().length, seenAs, listos: Object.keys(seleccion).length});
       if(seenAs) return avisar('⚠ Estás en modo preview ("seen as"). Los datos no se guardan. Salir para probar de verdad.');
       if(comentario.trim().length < 140){
         const faltan = 140 - comentario.trim().length;
+        console.log('validación fallida:', faltan);
         avisar(`El comentario necesita ${faltan} caracteres más (mínimo 140)`);
         return;
       }
