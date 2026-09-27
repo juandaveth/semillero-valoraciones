@@ -1660,6 +1660,9 @@ function deadlineSection(s){
   const info = !d ? 'Sin plazo' : (vencido ? '❌ Vencido' : `⏰ Faltan ${dias} ${dias === 1 ? 'día' : 'días'}`);
   const fecha = d ? d.toLocaleDateString('es-CO', {weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit'}) : '';
 
+  // Convertir fecha UTC a hora local para datetime-local input
+  const inputValue = d ? new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '';
+
   return `<div class="card">
     <h2>Plazo de entrega</h2>
     <div class="row">
@@ -1667,7 +1670,7 @@ function deadlineSection(s){
         ${d ? `<b>${fecha}</b>` : '<b style="color:var(--muted)">No configurado</b>'}
         <span>${info}</span>
       </div>
-      <input type="datetime-local" id="deadline_input" value="${d ? s.deadline.slice(0, 16) : ''}" style="padding:8px;border:1px solid var(--hair);border-radius:4px;flex:1;max-width:200px">
+      <input type="datetime-local" id="deadline_input" value="${inputValue}" style="padding:8px;border:1px solid var(--hair);border-radius:4px;flex:1;max-width:200px">
       <button class="ghost" data-act="guardar_deadline" data-sesion="${s.id}">Actualizar</button>
     </div>
   </div>`;
@@ -2003,7 +2006,8 @@ function conectar(){
     if(a === 'guardar_deadline'){
       const sesionId = b.dataset.sesion;
       const input = document.getElementById('deadline_input');
-      const nuevoDeadline = input.value ? new Date(input.value).toISOString() : null;
+      // El input datetime-local da hora local; convertir a UTC
+      const nuevoDeadline = input.value ? new Date(new Date(input.value).getTime() + new Date(input.value).getTimezoneOffset() * 60000).toISOString() : null;
       return aplicar(() => sb.schema('semillero').from('sesiones')
         .update({deadline: nuevoDeadline}).eq('id', sesionId));
     }
