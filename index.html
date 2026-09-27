@@ -890,7 +890,7 @@ function vistaParticipante(){
   setTimeout(() => {
     document.getElementById('barmount').innerHTML = `<div class="bar"><div class="in">
       <span class="count">${listos} de 5 criterios</span>
-      <button class="primary" data-act="enviar" ${listos < 5 || !tieneComentario ? 'disabled' : ''}>Enviar calificación</button>
+      <button class="primary" data-act="enviar">Enviar calificación</button>
     </div></div>`;
     conectar();
   }, 0);
