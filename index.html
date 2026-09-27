@@ -421,9 +421,17 @@ function derivar(){
     const ahora = new Date();
     const deadline = new Date(viva.deadline);
     if(ahora >= deadline){
+      // Cerrar sesión en la BD
       sb.schema('semillero').from('sesiones')
         .update({fase: 'cerrada', texto_en_concurso_id: null})
         .eq('id', viva.id);
+      // Sacar de "en vivo" también
+      sb.from('talleres')
+        .update({sesion_en_vivo_id: null})
+        .eq('id', D.estado.taller_activo);
+      // Actualizar estado local
+      D.estado.sesion_en_vivo = null;
+      D.estado.texto_activo = null;
     }
   }
 
@@ -1958,6 +1966,18 @@ function conectar(){
     // --- escrituras ---
     if(a === 'enviar'){
       console.log('enviar clicked', {comentarioLen: comentario.trim().length, seenAs, listos: Object.keys(seleccion).length});
+
+      // Validar que la sesión no haya vencido
+      const sesActual = sesionEnVivo();
+      if(sesActual && sesActual.deadline){
+        const ahora = new Date();
+        const deadline = new Date(sesActual.deadline);
+        if(ahora >= deadline){
+          avisar('❌ El plazo para esta sesión ha vencido. No se pueden enviar más valoraciones.');
+          return;
+        }
+      }
+
       if(comentario.trim().length < 140){
         const faltan = 140 - comentario.trim().length;
         console.log('validación fallida:', faltan);
