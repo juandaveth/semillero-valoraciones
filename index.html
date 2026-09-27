@@ -425,7 +425,7 @@ function derivar(){
     if(ahora >= deadline){
       // Cerrar sesión en la BD
       sb.schema('semillero').from('sesiones')
-        .update({fase: 'cerrada', texto_en_concurso_id: null})
+        .update({fase: 'cerrada'})
         .eq('id', viva.id);
       // Sacar de "en vivo" también
       sb.from('talleres')
