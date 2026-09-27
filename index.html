@@ -1314,6 +1314,15 @@ function cardTaller(){
              value="${esc(borrador.taller)}">
       <button class="ghost" data-act="crear_taller">Crear</button>
     </div>
+    <div class="form" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--hair)">
+      <span class="lbl">Testing</span>
+      <button class="ghost" data-act="crear_dummy">➕ Crear participante dummy</button>
+      <div id="dummy_info" style="margin-top:8px;padding:8px;background:var(--panel-2);border-radius:4px;font-size:12px;display:none">
+        <p style="margin:0;color:var(--muted)">Credenciales del dummy creado:</p>
+        <p id="dummy_email" style="margin:4px 0;font-family:monospace;word-break:break-all"></p>
+        <p id="dummy_pass" style="margin:0;font-family:monospace">Password: <b>test123</b></p>
+      </div>
+    </div>
   </div>`;
 }
 
@@ -1975,6 +1984,19 @@ function conectar(){
     }
     if(a === 'preview_participante') return local(() => { previewParticipante = true; });
     if(a === 'cerrar_preview')       return local(() => { previewParticipante = false; });
+    if(a === 'crear_dummy'){
+      return (async () => {
+        const { data, error } = await sb.rpc('crear_usuario_dummy');
+        if(error){ avisar('Error: ' + error.message); return render(); }
+        const email = data[0].user_id; // La función retorna el user_id
+        // Buscar el email real desde la BD
+        const { data: user } = await sb.auth.admin.getUserById(data[0].user_id);
+        const emailReal = user?.email || 'test@local.test';
+        document.getElementById('dummy_info').style.display = 'block';
+        document.getElementById('dummy_email').textContent = 'Email: ' + emailReal;
+        avisar('✓ Participante dummy creado. Email: ' + emailReal);
+      })();
+    }
     if(a === 'cancelar_paso')  return local(() => { confirmarPaso = null; });
     if(a === 'confirmar_paso'){
       const destino = confirmarPaso ? confirmarPaso.destino : null;
