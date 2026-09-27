@@ -928,6 +928,34 @@ function vistaParticipante(){
 
   const activo = D.estado.texto_activo ? texto(D.estado.texto_activo) : null;
   if(!activo || activo.sesion_id !== ses.id){
+    // Verificar si el usuario ya valoró todos los textos
+    const textosDelUsuario = textosDe(ses.id).filter(t => t.autor_id !== yo);
+    const valoracionesEnviadas = textosDelUsuario.filter(t => !!evalDe(t.id, yo));
+
+    if(textosDelUsuario.length > 0 && valoracionesEnviadas.length === textosDelUsuario.length){
+      // Mostrar mensaje de completado + resumen de valoraciones
+      const resumen = valoracionesEnviadas.map(t => {
+        const eval = evalDe(t.id, yo);
+        const puntajes = D.puntajes.filter(p => p.evaluacion_id === eval.id);
+        const promedio = puntajes.length > 0
+          ? (puntajes.reduce((a,b) => a + b.valor, 0) / puntajes.length).toFixed(1)
+          : '-';
+        return `<div style="padding:12px 0;border-bottom:1px solid var(--hair)">
+          <b style="display:block;margin-bottom:4px">${esc(t.titulo)}</b>
+          <span style="font-size:13px;color:var(--muted)">Promedio: ${promedio}/5</span>
+        </div>`;
+      }).join('');
+
+      return `<div class="notice done">
+        <strong>¡Completaste todas las valoraciones!</strong>
+        <span>Excelente trabajo. Aquí está el resumen de lo que enviaste.</span>
+      </div>
+      <div class="card">
+        <h3 style="margin:0 0 16px;font-size:16px">Tus valoraciones</h3>
+        ${resumen}
+      </div>` + pie;
+    }
+
     return `<div class="notice">
       <strong>Aún no hay texto abierto</strong>
       <span>Cuando todos hayan leído, el texto aparece aquí solo. No recargues.</span>
@@ -2083,7 +2111,10 @@ function conectar(){
         return;
       }
       await guardarEvaluacion(D.estado.texto_activo, yo, seleccion);
-      seleccion = {}; comentario = ''; return;
+      seleccion = {}; comentario = '';
+      // Auto-actualizar para mostrar el siguiente texto
+      await cargar();
+      return render();
     }
     if(a === 'pedir_borrar')    return local(() => { borrarSesion = b.dataset.sesion; });
     if(a === 'cancelar_borrar') return local(() => { borrarSesion = null; });
