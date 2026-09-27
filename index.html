@@ -1611,19 +1611,21 @@ function cardSesiones(){
 }
 
 function deadlineSection(s){
-  if(!s.deadline) return '';
-  const d = new Date(s.deadline);
+  const d = s.deadline ? new Date(s.deadline) : null;
   const hoy = new Date();
-  const vencido = d < hoy;
-  const dias = Math.ceil((d - hoy) / (1000 * 60 * 60 * 24));
+  const vencido = d && d < hoy;
+  const dias = d ? Math.ceil((d - hoy) / (1000 * 60 * 60 * 24)) : null;
+  const info = !d ? 'Sin plazo' : (vencido ? '❌ Vencido' : `⏰ Faltan ${dias} ${dias === 1 ? 'día' : 'días'}`);
+  const fecha = d ? d.toLocaleDateString('es-CO', {weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit'}) : '';
+
   return `<div class="card">
     <h2>Plazo de entrega</h2>
     <div class="row">
       <div class="who">
-        <b>${d.toLocaleDateString('es-CO', {weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit'})}</b>
-        <span>${vencido ? '❌ Vencido' : `⏰ Faltan ${dias} ${dias === 1 ? 'día' : 'días'}`}</span>
+        ${d ? `<b>${fecha}</b>` : '<b style="color:var(--muted)">No configurado</b>'}
+        <span>${info}</span>
       </div>
-      <input type="datetime-local" id="deadline_input" value="${s.deadline.slice(0, 16)}" style="padding:8px;border:1px solid var(--hair);border-radius:4px">
+      <input type="datetime-local" id="deadline_input" value="${d ? s.deadline.slice(0, 16) : ''}" style="padding:8px;border:1px solid var(--hair);border-radius:4px;flex:1;max-width:200px">
       <button class="ghost" data-act="guardar_deadline" data-sesion="${s.id}">Actualizar</button>
     </div>
   </div>`;
