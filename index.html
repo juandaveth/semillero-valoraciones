@@ -2005,7 +2005,7 @@ function conectar(){
     if(a === 'cerrar_preview')       return local(() => { previewParticipante = false; });
     if(a === 'aplicar_seen_as'){
       const select = document.getElementById('seen_as_select');
-      const participanteId = Number(select.value);
+      const participanteId = select.value;
       if(!participanteId) return avisar('Elige un participante');
       return local(() => { seenAs = participanteId; yo = participanteId; });
     }
