@@ -990,6 +990,7 @@ function vistaParticipante(){
           placeholder="Lo que te pasó al leerlo, lo que te sobró, lo que te quedó sonando."
           >${esc(comentario)}</textarea>
         <p class="legend" id="cuenta_com">${comentario.length} de 1000</p>
+        <p id="error_comentario" style="color:var(--vivo);font-size:13px;margin-top:6px;display:none"></p>
       </div>
     </div>` + pie;
 }
@@ -2060,10 +2061,15 @@ function conectar(){
 
       if(comentario.trim().length < 140){
         const faltan = 140 - comentario.trim().length;
-        console.log('validación fallida:', faltan);
-        avisar(`El comentario necesita ${faltan} caracteres más (mínimo 140)`);
-        render();
+        const errorEl = document.getElementById('error_comentario');
+        if(errorEl){
+          errorEl.textContent = `* Necesita ${faltan} caracteres más`;
+          errorEl.style.display = 'block';
+        }
         return;
+      } else {
+        const errorEl = document.getElementById('error_comentario');
+        if(errorEl) errorEl.style.display = 'none';
       }
       if(seenAs){
         avisar('⚠ Estás en modo preview ("seen as"). Los datos no se guardan. Salir para probar de verdad.');
