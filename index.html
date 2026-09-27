@@ -622,7 +622,6 @@ async function traerResultados(sesion_id){
 
 async function cargarRankingData(){
   try {
-    console.log('Iniciando cargarRankingData...');
     // Mapeo de textos a links de Discord
     const discordLinks = {
       'Octavo pecado capital': 'https://discord.com/channels/1537465513322610808/1542021538902052864',
@@ -635,11 +634,9 @@ async function cargarRankingData(){
 
     // Traer todas las sesiones
     const { data: sesiones } = await sb.schema('semillero').from('sesiones').select('id, nombre').order('id');
-    console.log('Sesiones:', sesiones);
 
     // Traer criterios
     const { data: criteriosData } = await sb.schema('semillero').from('criterios').select('id, nombre').eq('activo', true);
-    console.log('Criterios:', criteriosData);
     const criteriaMap = {};
     criteriosData.forEach(c => criteriaMap[c.id] = c.nombre);
 
@@ -698,7 +695,6 @@ async function cargarRankingData(){
   }catch(err){
     console.error('Error cargando ranking:', err);
   }
-  console.log('rankingCache final:', rankingCache);
 }
 
 /* ------------------------- estado de la vista ---------------------- */
@@ -2070,7 +2066,6 @@ function conectar(){
 
     // --- escrituras ---
     if(a === 'enviar'){
-      console.log('enviar clicked', {comentarioLen: comentario.trim().length, seenAs, listos: Object.keys(seleccion).length, textoActivo: D.estado.texto_activo, sesionEnVivo: D.estado.sesion_en_vivo});
 
       // Validar que haya texto y sesión activos
       if(!D.estado.texto_activo || !D.estado.sesion_en_vivo){
@@ -2095,7 +2090,6 @@ function conectar(){
       const cajaComentario = document.getElementById('comentario');
       if(cajaComentario) comentario = cajaComentario.value;
 
-      console.log('validando comentario:', {comentarioVar: comentario.length, textareaVal: cajaComentario ? cajaComentario.value.length : 0});
 
       if(comentario.trim().length < 140){
         const faltan = 140 - comentario.trim().length;
@@ -2209,26 +2203,13 @@ function conectar(){
       return aplicar(() => sb.from('sesiones')
         .update({texto_en_concurso_id: destino}).eq('id', D.estado.sesion_en_vivo));
     }
-    if(a === 'abrir' || a === 'cerrar'){
-      const destino = (a === 'abrir') ? b.dataset.texto : null;
-      const actual  = D.estado.texto_activo ? texto(D.estado.texto_activo) : null;
-      // Solo se pregunta si hay alguien a medio camino en el texto que está abierto.
-      if(actual && actual.id !== destino && pendientesDe(actual) > 0){
-        confirmarPaso = { destino };
-        return render();
-      }
-      confirmarPaso = null;
-      return aplicar(() => sb.from('sesiones')
-        .update({texto_en_concurso_id: destino}).eq('id', D.estado.sesion_en_vivo));
-    }
-
     if(a === 'poner_aire')  return aplicar(() => sb.from('talleres')
       .update({sesion_en_vivo_id: b.dataset.sesion}).eq('id', D.estado.taller_activo));
     if(a === 'quitar_aire') return aplicar(() => sb.from('talleres')
       .update({sesion_en_vivo_id: null}).eq('id', D.estado.taller_activo));
 
     if(a === 'cerrar_sesion') return aplicar(() => sb.from('sesiones')
-      .update({fase:'cerrada', texto_en_concurso_id:null}).eq('id', D.estado.sesion_vista));
+      .update({fase:'cerrada'}).eq('id', D.estado.sesion_vista));
     if(a === 'reabrir') return aplicar(() => sb.from('sesiones')
       .update({fase:'en_curso'}).eq('id', D.estado.sesion_vista));
 
