@@ -2059,6 +2059,12 @@ function conectar(){
         }
       }
 
+      // Sincronizar con el valor actual del textarea por si acaso
+      const cajaComentario = document.getElementById('comentario');
+      if(cajaComentario) comentario = cajaComentario.value;
+
+      console.log('validando comentario:', {comentarioVar: comentario.length, textareaVal: cajaComentario ? cajaComentario.value.length : 0});
+
       if(comentario.trim().length < 140){
         const faltan = 140 - comentario.trim().length;
         const errorEl = document.getElementById('error_comentario');
