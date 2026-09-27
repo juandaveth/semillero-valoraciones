@@ -411,6 +411,18 @@ function derivar(){
   }
   const viva = D.sesiones.find(x => x.id === D.estado.sesion_en_vivo);
   D.estado.texto_activo = viva ? viva.texto_en_concurso_id : null;
+
+  // Auto-cerrar sesiones vencidas
+  if(viva && viva.deadline && viva.fase !== 'cerrada'){
+    const ahora = new Date();
+    const deadline = new Date(viva.deadline);
+    if(ahora >= deadline){
+      sb.schema('semillero').from('sesiones')
+        .update({fase: 'cerrada', texto_en_concurso_id: null})
+        .eq('id', viva.id);
+    }
+  }
+
   guardarUI();
 }
 
@@ -819,6 +831,7 @@ function vistaParticipante(){
         <p class="sub" style="margin-bottom:24px">
           <strong>${esc(ses.nombre)}</strong><br>
           ${fechaLarga(ses.fecha)}<br>
+          ${ses.deadline ? `<span style="font-size:13px;color:var(--ink);font-weight:500">⏰ Cierra ${new Date(ses.deadline).toLocaleDateString('es-CO', {weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'})}</span><br>` : ''}
           <span style="font-size:13px;color:var(--muted)">${textosDe(ses.id).length} textos para calificar</span>
         </p>
         <button class="primary" data-act="entrar_sesion" style="padding:16px 32px;font-size:16px;width:100%;max-width:400px">
@@ -1597,6 +1610,25 @@ function cardSesiones(){
   </div>`;
 }
 
+function deadlineSection(s){
+  if(!s.deadline) return '';
+  const d = new Date(s.deadline);
+  const hoy = new Date();
+  const vencido = d < hoy;
+  const dias = Math.ceil((d - hoy) / (1000 * 60 * 60 * 24));
+  return `<div class="card">
+    <h2>Plazo de entrega</h2>
+    <div class="row">
+      <div class="who">
+        <b>${d.toLocaleDateString('es-CO', {weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit'})}</b>
+        <span>${vencido ? '❌ Vencido' : `⏰ Faltan ${dias} ${dias === 1 ? 'día' : 'días'}`}</span>
+      </div>
+      <input type="datetime-local" id="deadline_input" value="${s.deadline.slice(0, 16)}" style="padding:8px;border:1px solid var(--hair);border-radius:4px">
+      <button class="ghost" data-act="guardar_deadline" data-sesion="${s.id}">Actualizar</button>
+    </div>
+  </div>`;
+}
+
 function panelEnCurso(s){
   const enVivo = D.estado.sesion_en_vivo === s.id;
   const lista = textosDe(s.id);
@@ -1636,7 +1668,8 @@ function panelEnCurso(s){
   const fueraDelAire = enVivo ? '' :
     `<div class="aviso">Esta sesión no está en el aire, así que no puedes poner textos en concurso: nadie los recibiría. Ponla en vivo arriba.</div>`;
 
-  return `<div class="card">
+  return `${deadlineSection(s)}
+    <div class="card">
       <h2>Textos de la sesión</h2>
       <p class="sub" style="margin-bottom:6px">Tú decides cuál está en concurso, uno a la vez. El autor no entra en el denominador.</p>
       ${filas || '<p class="sub" style="padding:14px 0">Esta sesión todavía no tiene textos.</p>'}
@@ -1920,6 +1953,13 @@ function conectar(){
       if(D.estado.sesion_vista === id) D.estado.sesion_vista = null;
       if(D.estado.sesion_en_vivo === id) D.estado.sesion_en_vivo = null;
       return aplicar(() => sb.from('sesiones').delete().eq('id', id));
+    }
+    if(a === 'guardar_deadline'){
+      const sesionId = b.dataset.sesion;
+      const input = document.getElementById('deadline_input');
+      const nuevoDeadline = input.value ? new Date(input.value).toISOString() : null;
+      return aplicar(() => sb.schema('semillero').from('sesiones')
+        .update({deadline: nuevoDeadline}).eq('id', sesionId));
     }
     if(a === 'cancelar_paso')  return local(() => { confirmarPaso = null; });
     if(a === 'confirmar_paso'){
