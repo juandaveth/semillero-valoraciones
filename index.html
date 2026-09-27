@@ -2042,6 +2042,7 @@ function conectar(){
       // Validar que haya texto y sesión activos
       if(!D.estado.texto_activo || !D.estado.sesion_en_vivo){
         avisar('❌ No hay sesión o texto activo');
+        render();
         return;
       }
 
@@ -2052,6 +2053,7 @@ function conectar(){
         const deadline = new Date(sesActual.deadline);
         if(ahora >= deadline){
           avisar('❌ El plazo para esta sesión ha vencido. No se pueden enviar más valoraciones.');
+          render();
           return;
         }
       }
@@ -2060,9 +2062,14 @@ function conectar(){
         const faltan = 140 - comentario.trim().length;
         console.log('validación fallida:', faltan);
         avisar(`El comentario necesita ${faltan} caracteres más (mínimo 140)`);
+        render();
         return;
       }
-      if(seenAs) return avisar('⚠ Estás en modo preview ("seen as"). Los datos no se guardan. Salir para probar de verdad.');
+      if(seenAs){
+        avisar('⚠ Estás en modo preview ("seen as"). Los datos no se guardan. Salir para probar de verdad.');
+        render();
+        return;
+      }
       await guardarEvaluacion(D.estado.texto_activo, yo, seleccion);
       seleccion = {}; comentario = ''; return;
     }
