@@ -2014,8 +2014,15 @@ function conectar(){
     if(a === 'guardar_deadline'){
       const sesionId = b.dataset.sesion;
       const input = document.getElementById('deadline_input');
-      // datetime-local da hora local, new Date() la convierte a UTC correctamente
-      const nuevoDeadline = input.value ? new Date(input.value).toISOString() : null;
+      let nuevoDeadline = null;
+      if(input.value){
+        // Parsear manualmente para asegurar que se interpreta como hora local
+        const [date, time] = input.value.split('T');
+        const [year, month, day] = date.split('-').map(Number);
+        const [hours, minutes] = time.split(':').map(Number);
+        const d = new Date(year, month - 1, day, hours, minutes, 0);
+        nuevoDeadline = d.toISOString();
+      }
       return aplicar(() => sb.schema('semillero').from('sesiones')
         .update({deadline: nuevoDeadline}).eq('id', sesionId));
     }
