@@ -673,6 +673,7 @@ let borrador = {fecha:'', nombre:'', titulo:'', autor:'', taller:''};
 let pantalla = 'entrar';        // 'entrar' | 'perfil' | 'sesion'
 let entroASesion = false;       // ¿El participante ya hizo click en "Entrar a la sesión"?
 let previewParticipante = false;// Vista previa como participante desde el panel
+let seenAs = null;              // ID del usuario que estoy impersonando
 let rankingVisible = false;     // ¿El ranking desplegable está visible?
 let rankingCache = [];          // Cache de datos del ranking
 let confirmarPaso = null;       // {destino} cuando falta gente por enviar
@@ -727,9 +728,19 @@ function render(){
   }
   const page = document.getElementById('page');
   document.getElementById('barmount').innerHTML = '';
-  page.className = 'page' + (modo() === 'panel' && !previewParticipante ? ' wide' : '');
+  page.className = 'page' + (modo() === 'panel' && !previewParticipante && !seenAs ? ' wide' : '');
+  let content = '';
+  if(seenAs){
+    const p = persona(seenAs);
+    content = `<div style="position:sticky;top:0;z-index:10;background:#fff3cd;padding:12px;border-bottom:1px solid #ffc107;display:flex;justify-content:space-between;align-items:center">
+      <b style="font-size:13px">👁 Viendo como: ${esc(nom(p))}</b>
+      <button class="link" data-act="salir_seen_as" style="padding:0;font-size:16px">✕</button>
+    </div>` + vistaParticipante();
+  } else {
+    content = previewParticipante ? vistaParticipantePreview() : (modo() === 'panel' ? vistaPanel() : vistaParticipante());
+  }
   page.innerHTML = cabecera()
-    + (previewParticipante ? vistaParticipantePreview() : (modo() === 'panel' ? vistaPanel() : vistaParticipante()))
+    + content
     + firma();
   conectar();
 }
@@ -1316,7 +1327,15 @@ function cardTaller(){
     </div>
     <div class="form" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--hair)">
       <span class="lbl">Testing</span>
-      <button class="ghost" data-act="crear_dummy">➕ Crear participante dummy</button>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <select id="seen_as_select" style="flex:1;padding:8px;border:1px solid var(--hair);border-radius:4px;font-size:14px">
+          <option value="">Seen as... (elige participante)</option>
+          ${inscritosDe(activo ? activo.id : null).map(p => `<option value="${p.id}">${esc(nom(p))}</option>`).join('')}
+        </select>
+        <button class="ghost" data-act="aplicar_seen_as" style="white-space:nowrap">Entrar</button>
+        ${seenAs ? `<button class="ghost" data-act="salir_seen_as" style="white-space:nowrap">Salir</button>` : ''}
+      </div>
+      <button class="ghost" data-act="crear_dummy" style="width:100%">➕ Crear participante dummy</button>
       <div id="dummy_info" style="margin-top:8px;padding:8px;background:var(--panel-2);border-radius:4px;font-size:12px;display:none">
         <p style="margin:0;color:var(--muted)">Credenciales del dummy creado:</p>
         <p id="dummy_email" style="margin:4px 0;font-family:monospace;word-break:break-all"></p>
@@ -1984,6 +2003,15 @@ function conectar(){
     }
     if(a === 'preview_participante') return local(() => { previewParticipante = true; });
     if(a === 'cerrar_preview')       return local(() => { previewParticipante = false; });
+    if(a === 'aplicar_seen_as'){
+      const select = document.getElementById('seen_as_select');
+      const participanteId = Number(select.value);
+      if(!participanteId) return avisar('Elige un participante');
+      return local(() => { seenAs = participanteId; yo = participanteId; });
+    }
+    if(a === 'salir_seen_as'){
+      return local(() => { seenAs = null; });
+    }
     if(a === 'crear_dummy'){
       return (async () => {
         const { data, error } = await sb.rpc('crear_usuario_dummy');
