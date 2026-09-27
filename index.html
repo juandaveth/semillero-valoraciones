@@ -1660,8 +1660,16 @@ function deadlineSection(s){
   const info = !d ? 'Sin plazo' : (vencido ? '❌ Vencido' : `⏰ Faltan ${dias} ${dias === 1 ? 'día' : 'días'}`);
   const fecha = d ? d.toLocaleDateString('es-CO', {weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit'}) : '';
 
-  // Convertir fecha UTC a hora local para datetime-local input
-  const inputValue = d ? new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '';
+  // datetime-local necesita hora local en formato YYYY-MM-DDTHH:mm
+  let inputValue = '';
+  if(d){
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    inputValue = `${year}-${month}-${day}T${hours}:${minutes}`;
+  }
 
   return `<div class="card">
     <h2>Plazo de entrega</h2>
@@ -2006,8 +2014,8 @@ function conectar(){
     if(a === 'guardar_deadline'){
       const sesionId = b.dataset.sesion;
       const input = document.getElementById('deadline_input');
-      // El input datetime-local da hora local; convertir a UTC
-      const nuevoDeadline = input.value ? new Date(new Date(input.value).getTime() + new Date(input.value).getTimezoneOffset() * 60000).toISOString() : null;
+      // datetime-local da hora local, new Date() la convierte a UTC correctamente
+      const nuevoDeadline = input.value ? new Date(input.value).toISOString() : null;
       return aplicar(() => sb.schema('semillero').from('sesiones')
         .update({deadline: nuevoDeadline}).eq('id', sesionId));
     }
