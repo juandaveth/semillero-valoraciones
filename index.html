@@ -940,9 +940,13 @@ function vistaParticipante(){
         const promedio = puntajes.length > 0
           ? (puntajes.reduce((a,b) => a + b.valor, 0) / puntajes.length).toFixed(1)
           : '-';
-        return `<div style="padding:12px 0;border-bottom:1px solid var(--hair)">
-          <b style="display:block;margin-bottom:4px">${esc(t.titulo)}</b>
-          <span style="font-size:13px;color:var(--muted)">Promedio: ${promedio}/5</span>
+        return `<div style="padding:16px 0;border-bottom:1px solid var(--hair)">
+          <b style="display:block;margin-bottom:8px">${esc(t.titulo)}</b>
+          <span style="font-size:13px;color:var(--muted);display:block;margin-bottom:8px">Promedio: ${promedio}/5</span>
+          ${eval.comentario ? `<div style="background:var(--panel-2);padding:10px;border-radius:4px;font-size:13px;line-height:1.5;margin-top:8px">
+            <p style="margin:0 0 4px;color:var(--muted);font-size:12px;font-weight:500">Tu comentario (anónimo):</p>
+            <p style="margin:0;color:var(--text)">"${esc(eval.comentario)}"</p>
+          </div>` : ''}
         </div>`;
       }).join('');
 
