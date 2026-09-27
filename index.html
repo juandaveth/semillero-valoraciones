@@ -1943,6 +1943,7 @@ function conectar(){
 
     // --- escrituras ---
     if(a === 'enviar'){
+      if(seenAs) return avisar('⚠ Estás en modo preview ("seen as"). Los datos no se guardan. Salir para probar de verdad.');
       if(comentario.trim().length < 140){
         const faltan = 140 - comentario.trim().length;
         avisar(`El comentario necesita ${faltan} caracteres más (mínimo 140)`);
