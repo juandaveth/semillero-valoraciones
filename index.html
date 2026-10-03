@@ -201,7 +201,7 @@
   .done strong{color:var(--ok)}
 
   /* --- formularios --- */
-  input,select,textarea{font:400 15.5px/1.5 var(--sans);padding:11px;border-radius:3px;
+  input,select,textarea{font:400 16px/1.5 var(--sans);padding:11px;border-radius:3px;
     border:1px solid var(--line);background:var(--bg);color:var(--ink);width:100%}
   textarea{resize:vertical;min-height:110px;font-family:var(--sans)}
   input::placeholder{color:var(--muted)}
@@ -507,6 +507,7 @@ function proximoTextoSinValorar(sesion_id, evaluador_id){
   const textosEvaluados = new Set(evaluaciones.map(e => e.texto_id));
 
   for(const t of textos){
+    if(t.autor_id === evaluador_id) continue;   // el propio no se califica
     if(!textosEvaluados.has(t.id)) return t;
   }
   return null; // Todos evaluados
@@ -547,23 +548,21 @@ function promedioSesion(sid){
   return out;
 }
 
+// Devuelve null si el voto entró, o el mensaje de por qué no. No limpia nada:
+// si falla, lo que la persona escribió tiene que seguir ahí.
 async function guardarEvaluacion(texto_id, evaluador_id, seleccion){
-  // Validar que sea el siguiente texto sin valorar
   const sesActual = sesionEnVivo();
-  if(!sesActual){
-    avisar('❌ No hay sesión en vivo');
-    return;
-  }
+  if(!sesActual) return 'No hay sesión en vivo.';
   const proxTexto = proximoTextoSinValorar(sesActual.id, evaluador_id);
-  if(!proxTexto || proxTexto.id !== texto_id){
-    avisar('❌ Debes valorar los textos en orden. Completa el actual primero.');
-    return;
-  }
+  if(!proxTexto || proxTexto.id !== texto_id)
+    return 'Este no es el texto que te toca. Recarga la página.';
 
   const mapa = {};
   for(const c of criterios()) mapa[c.id] = seleccion[c.id];
-  await aplicar(() => sb.rpc('enviar_valoracion',
-    {p_texto: texto_id, p_puntajes: mapa, p_comentario: comentario.trim() || null}));
+  const { error } = await sb.rpc('enviar_valoracion',
+    {p_texto: texto_id, p_puntajes: mapa, p_comentario: comentario.trim() || null});
+  if(error){ console.error(error); return error.message; }
+  return null;
 }
 
 // Un participante no puede leer los puntajes ajenos: para su propio texto
@@ -707,6 +706,8 @@ const MIN_COMENTARIO = 20;  // caracteres mínimos del comentario al calificar
 let yo = Number(localStorage.getItem(YO_KEY)) || null;
 let seleccion = {};
 let comentario = '';       // lo que va escribiendo quien califica
+let errorEnvio = '';       // por qué no entró el voto; se pinta junto al botón, no arriba
+let enviando = false;       // evita el doble toque en Enviar
 let ultimoTextoActivo = null;
 let borrador = {fecha:'', nombre:'', titulo:'', autor:'', taller:''};
 let pantalla = 'entrar';        // 'entrar' | 'perfil' | 'sesion'
@@ -967,7 +968,7 @@ function vistaParticipante(){
       </div>` + pie;
   }
 
-  if(ultimoTextoActivo !== activo.id){ seleccion = {}; comentario = ''; ultimoTextoActivo = activo.id; }
+  if(ultimoTextoActivo !== activo.id){ seleccion = {}; comentario = ''; errorEnvio = ''; ultimoTextoActivo = activo.id; }
   const listos = criterios().filter(c => seleccion[c.id]).length;
   setTimeout(() => {
     document.getElementById('barmount').innerHTML = `<div class="bar"><div class="in">
@@ -984,7 +985,7 @@ function vistaParticipante(){
     </div>
     <div class="card">
       ${criterios().map(c => `
-        <div class="crit">
+        <div class="crit" id="crit_${c.id}">
           <h3>${c.orden}. ${esc(c.nombre)}</h3>
           <p>${esc(c.pregunta)}</p>
           <div class="scale">
@@ -1003,6 +1004,7 @@ function vistaParticipante(){
         <p class="legend" id="cuenta_com">${comentario.length} de 1000</p>
         <p id="error_comentario" style="color:var(--vivo);font-size:13px;margin-top:6px;display:none"></p>
       </div>
+      ${errorEnvio ? `<p class="aviso" id="error_envio">${esc(errorEnvio)}</p>` : ''}
     </div>` + pie;
 }
 
@@ -1981,6 +1983,7 @@ function conectar(){
 
   document.querySelectorAll('[data-crit]').forEach(b => b.onclick = () => {
     seleccion[b.dataset.crit] = Number(b.dataset.val);
+    errorEnvio = '';
     render();
   });
 
@@ -2059,30 +2062,31 @@ function conectar(){
 
     // --- escrituras ---
     if(a === 'enviar'){
+      if(enviando) return;
+      // Todo error se queda junto al botón y nada de lo escrito se borra.
+      const fallar = msg => {
+        errorEnvio = msg; render();
+        const el = document.getElementById('error_envio');
+        if(el) el.scrollIntoView({block:'center', behavior:'smooth'});
+      };
 
-      // Validar que haya texto y sesión activos
-      if(!D.estado.texto_activo || !D.estado.sesion_en_vivo){
-        avisar('❌ No hay sesión o texto activo');
-        render();
-        return;
-      }
-
-      // Validar que la sesión no haya vencido
+      if(!D.estado.texto_activo || !D.estado.sesion_en_vivo)
+        return fallar('No hay sesión o texto activo. Recarga la página.');
       const sesActual = sesionEnVivo();
-      if(sesActual && sesActual.deadline){
-        const ahora = new Date();
-        const deadline = new Date(sesActual.deadline);
-        if(ahora >= deadline){
-          avisar('❌ El plazo para esta sesión ha vencido. No se pueden enviar más valoraciones.');
-          render();
-          return;
-        }
-      }
+      if(sesActual && sesActual.deadline && new Date() >= new Date(sesActual.deadline))
+        return fallar('El plazo de esta sesión venció. Ya no se pueden enviar valoraciones.');
 
-      // Sincronizar con el valor actual del textarea por si acaso
       const cajaComentario = document.getElementById('comentario');
       if(cajaComentario) comentario = cajaComentario.value;
 
+      const sinCalificar = criterios().filter(c => !seleccion[c.id]);
+      if(sinCalificar.length){
+        errorEnvio = 'Falta calificar: ' + sinCalificar.map(c => c.nombre).join(', ') + '.';
+        render();
+        const el = document.getElementById('crit_' + sinCalificar[0].id);
+        if(el) el.scrollIntoView({block:'start', behavior:'smooth'});
+        return;
+      }
 
       if(comentario.trim().length < MIN_COMENTARIO){
         const faltan = MIN_COMENTARIO - comentario.trim().length;
@@ -2090,17 +2094,21 @@ function conectar(){
         if(errorEl){
           errorEl.textContent = `* Necesita ${faltan} caracteres más`;
           errorEl.style.display = 'block';
+          errorEl.scrollIntoView({block:'center', behavior:'smooth'});
         }
         return;
-      } else {
-        const errorEl = document.getElementById('error_comentario');
-        if(errorEl) errorEl.style.display = 'none';
       }
-      await guardarEvaluacion(D.estado.texto_activo, yo, seleccion);
-      seleccion = {}; comentario = '';
-      // Auto-actualizar para mostrar el siguiente texto
+
+      enviando = true;
+      const error = await guardarEvaluacion(D.estado.texto_activo, yo, seleccion);
+      enviando = false;
+      if(error) return fallar(error);
+
+      seleccion = {}; comentario = ''; errorEnvio = '';
       await cargar();
-      return render();
+      render();
+      window.scrollTo(0, 0);   // el siguiente texto empieza por su título
+      return;
     }
     if(a === 'pedir_borrar')    return local(() => { borrarSesion = b.dataset.sesion; });
     if(a === 'cancelar_borrar') return local(() => { borrarSesion = null; });
