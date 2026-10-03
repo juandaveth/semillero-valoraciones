@@ -1712,6 +1712,18 @@ function deadlineSection(s){
   </div>`;
 }
 
+// Mover un texto a otra sesión del mismo taller. Los votos cuelgan del texto,
+// así que se van con él; quien ya lo calificó no lo vuelve a ver.
+function selectorMover(t){
+  const s = sesion(t.sesion_id);
+  const otras = s ? sesionesDe(s.taller_id).filter(x => x.id !== s.id) : [];
+  if(!otras.length) return '';
+  return `<select class="mover-texto" data-texto="${t.id}" style="font-size:12px;padding:4px 6px;max-width:150px">
+    <option value="">Mover a...</option>
+    ${otras.map(x => `<option value="${x.id}">${esc(x.nombre)}</option>`).join('')}
+  </select>`;
+}
+
 function panelEnCurso(s){
   const enVivo = D.estado.sesion_en_vivo === s.id;
   const lista = textosDe(s.id);
@@ -1726,6 +1738,7 @@ function panelEnCurso(s){
         <b>${t.orden}. ${esc(t.titulo)}</b>
         <span>${esc(autorDe(t))}${t.autor_id ? '' : ' (sin cuenta)'}, ${hechas} de ${total} enviadas</span>
       </div>
+      ${selectorMover(t)}
       ${hechas === 0 ? `<button class="link" data-act="borrar_texto" data-texto="${t.id}">quitar</button>` : ''}
     </div>`;
   }).join('');
@@ -1814,7 +1827,18 @@ function panelCerrado(s){
         </div>
         <button class="ghost" data-act="reabrir">Reabrir la sesión</button>
       </div>
-    </div>${plegable('resultados', bloqueResultados(s, 'Resultados de la sesión',
+    </div>
+    ${textosDe(s.id).length ? `<div class="card">
+      <h2>Textos de la sesión</h2>
+      <p class="sub">Si un texto recibió pocas valoraciones, muévelo a otra sesión: se lleva sus votos y solo lo califica quien falte.</p>
+      ${textosDe(s.id).map(t => `<div class="row">
+        <div class="who" style="flex:1">
+          <b>${t.orden}. ${esc(t.titulo)}</b>
+          <span>${esc(autorDe(t))}, ${enviadasDe(t.id).length} de ${evaluadoresDe(t).length} enviadas</span>
+        </div>
+        ${selectorMover(t)}
+      </div>`).join('')}
+    </div>` : ''}${plegable('resultados', bloqueResultados(s, 'Resultados de la sesión',
       'Promedio de 1 a 5, sin nombres de quien califica.'), true)}
     ${plegable('comentarios', bloqueComentarios(textosDe(s.id), 'Comentarios de la sesión'), true)}`;
 }
@@ -1965,6 +1989,15 @@ function conectar(){
     render();
   });
 
+  document.querySelectorAll('.mover-texto').forEach(sel => {
+    sel.onchange = () => {
+      const destino = sel.value;
+      if(!destino) return;
+      const hermanos = textosDe(destino);
+      const orden = hermanos.length ? Math.max(...hermanos.map(t => t.orden)) + 1 : 1;
+      aplicar(() => sb.from('textos').update({sesion_id: destino, orden}).eq('id', sel.dataset.texto));
+    };
+  });
   document.querySelectorAll('.slug-input').forEach(inp => {
     inp.onblur = async () => {
       const sesionId = inp.dataset.sesion;
