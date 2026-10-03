@@ -13,9 +13,21 @@ Desplegar con `./deploy.sh` (nunca `vercel --prod` solo: no mueve el alias).
       12 de septiembre de 2026, en vivo con Camilo, calificando dos textos.
       Queda pendiente solo la comprobación por consola de que no puede leer
       votos ajenos.
-- [ ] **Comprobar por consola que un participante no lee votos ajenos.** Siendo
-      participante: `(await sb.from('evaluaciones').select('*')).data.length`
-      debe devolver solo los propios. La interfaz no puede demostrarlo.
+- [ ] **Comprobar por consola que un participante no lee votos ajenos.** La
+      interfaz no puede demostrarlo. Pesa más desde que la sesión queda abierta
+      hasta el martes: más gente califica desde la casa, con tiempo de curiosear.
+      Se hace solo, sin Camilo, bajándose de admin un momento:
+      1. SQL Editor: `update semillero.perfiles set rol = 'participante' where
+         id = (select id from auth.users where email = 'jd.reyespaez@gmail.com');`
+         y anotar `select count(*) from semillero.evaluaciones e join auth.users u
+         on u.id = e.evaluador_id where u.email = 'jd.reyespaez@gmail.com';`
+      2. En Chrome, en el computador, recargar la app (ya no sale "Panel"),
+         `Cmd + Option + J` y correr
+         `(await sb.from('evaluaciones').select('*')).data.length`
+         (si no deja pegar, escribir `allow pasting`).
+      3. Mismo número que el paso 1 = anonimato real. Más = cualquiera ve quién
+         votó qué: parar todo.
+      4. Volver a admin: el mismo `update` con `rol = 'admin'`.
 - [ ] **Probar con más de dos teléfonos**, en la red del lugar donde va a ser.
 
 ## Prometido en el copy y no construido
