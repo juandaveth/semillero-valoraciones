@@ -29,6 +29,18 @@ Desplegar con `./deploy.sh` (nunca `vercel --prod` solo: no mueve el alias).
       datos del 12 los tres textos quedaron dentro de 0.13 puntos, así que el
       orden es más ruido que señal: sirve para conversar, no para coronar.
 
+## Para quien no estuvo en la clase
+
+Desde octubre de 2026 la sesión queda abierta hasta el martes siguiente, para
+que califique también quien no asistió. En clase se lee en el fanzine impreso;
+quien no fue no lo tiene.
+
+- [ ] **Enlace al texto en Discord.** Cada texto lleva el enlace a la
+      publicación de Discord donde su autor lo compartió, y la pantalla de
+      calificación muestra "Leer el texto en Discord". Probable forma: una
+      columna `textos.discord_url` (opcional) que el equipo pega al agregar el
+      texto en el panel. Si un texto no la tiene, no se muestra nada.
+
 ## Lo que se va a notar en el salón
 
 - [ ] **Saber quién falta por enviar, no solo cuántos.** Hoy el panel dice
