@@ -659,9 +659,10 @@ async function cargarRankingData(){
         resultados.forEach(r => {
           if(!textoResultados[r.texto_id]) textoResultados[r.texto_id] = {};
           textoResultados[r.texto_id][r.criterio_id] = r.promedio;
+          textoResultados[r.texto_id].n = Number(r.n);
         });
 
-        Object.entries(textoResultados).forEach(([textoId, calificaciones]) => {
+        Object.entries(textoResultados).forEach(([textoId, {n, ...calificaciones}]) => {
           // Ignorar textos sin calificaciones válidas
           const califs = Object.values(calificaciones).filter(v => v !== null && v !== undefined && !isNaN(v));
           if(!califs.length) return;
@@ -686,6 +687,7 @@ async function cargarRankingData(){
               sesion: sesion.nombre,
               sesionId: sesion.id,
               promedio,
+              n,
               mejorCriterio,
               mejorPuntuacion,
               mejorNombre: criteriaMap[mejorCriterio],
@@ -703,6 +705,7 @@ async function cargarRankingData(){
 /* ------------------------- estado de la vista ---------------------- */
 const YO_KEY = 'semillero-valoraciones-yo';
 const MIN_COMENTARIO = 20;  // caracteres mínimos del comentario al calificar
+const MIN_VALORACIONES = 10; // con menos, el texto no entra al acumulado: el promedio dice más del azar
 let yo = Number(localStorage.getItem(YO_KEY)) || null;
 let seleccion = {};
 let comentario = '';       // lo que va escribiendo quien califica
@@ -881,6 +884,7 @@ function vistaParticipante(){
         <h3>¿Cómo funciona?</h3>
         ${comoFunciona()}
       </div>
+      ${plegable('textos_leidos', mostrarRankingHome(), false)}
     </div>` + pie;
   }
 
@@ -938,7 +942,8 @@ function vistaParticipante(){
       <div class="card">
         <h3 style="margin:0 0 16px;font-size:16px">Tus valoraciones</h3>
         ${resumen}
-      </div>` + pie;
+      </div>
+      ${plegable('textos_leidos', mostrarRankingHome(), false)}` + pie;
     }
 
     return `<div class="notice">
@@ -1146,14 +1151,17 @@ function formularioPerfil(p){
 
 // Mostrar ranking creativo en el home (cuando no hay sesión en vivo)
 function mostrarRankingHome(){
-  if(!rankingCache.length) return '';
+  const entran = rankingCache.filter(t => t.n >= MIN_VALORACIONES);
+  if(!entran.length) return '';
 
-  const sorted = [...rankingCache].sort((a, b) => b.promedio - a.promedio);
-  const promGral = rankingCache.reduce((a, b) => a + b.promedio, 0) / rankingCache.length;
+  const sorted = [...entran].sort((a, b) => b.promedio - a.promedio);
+  const promGral = entran.reduce((a, b) => a + b.promedio, 0) / entran.length;
 
   return `<div class="card">
-    <h2>Textos leídos y comentados</h2>
-    <p class="sub" style="margin-bottom:16px">Promedio general: ${promGral.toFixed(2)}</p>
+    <h2>Acumulado del taller</h2>
+    <p class="sub" style="margin-bottom:16px">${entran.length} ${entran.length === 1 ? 'texto' : 'textos'}
+      de las sesiones cerradas. Promedio general: ${promGral.toFixed(2)}.
+      Solo se incluyen los textos con ${MIN_VALORACIONES} valoraciones o más.</p>
 
     <div style="display:grid;gap:12px">
       ${sorted.map((t, idx) => `
@@ -1161,7 +1169,7 @@ function mostrarRankingHome(){
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px">
             <div style="flex:1">
               <h3 style="margin:0 0 4px;font-size:14px;font-weight:600">${esc(t.titulo)}</h3>
-              <p style="margin:0;font-size:12px;color:var(--muted)">${esc(t.autor)} • ${esc(t.sesion)}</p>
+              <p style="margin:0;font-size:12px;color:var(--muted)">${esc(t.autor)} • ${esc(t.sesion)} • ${t.n} valoraciones</p>
             </div>
             <span style="font-size:18px;font-weight:700;color:var(--accent)">${t.promedio.toFixed(2)}</span>
           </div>
@@ -1548,16 +1556,18 @@ function acumulado(taller_id){
   const evals = D.evaluaciones.filter(e => textoIds.has(e.texto_id));
   const porEval = new Map(evals.map(e => [e.id, e]));
   const puntos = D.puntajes.filter(p => porEval.has(p.evaluacion_id));
-  if(!puntos.length) return {cerradas, filas:[], sesiones:[], general:null};
+  if(!puntos.length) return {cerradas, filas:[], fuera:[], sesiones:[], general:null};
 
   const media = arr => arr.length ? arr.reduce((a,b) => a+b, 0) / arr.length : null;
-  const general = media(puntos.map(p => p.valor));
 
   const filas = textos.map(t => {
     const mios = new Set(evals.filter(e => e.texto_id === t.id).map(e => e.id));
     const suyos = puntos.filter(p => mios.has(p.evaluacion_id));
     return {t, n: mios.size, promedio: media(suyos.map(p => p.valor))};
   }).filter(f => f.n > 0);
+  const fuera = filas.filter(f => f.n < MIN_VALORACIONES);
+  const sinFuera = new Set(fuera.map(f => f.t.id));
+  const general = media(puntos.filter(p => !sinFuera.has(porEval.get(p.evaluacion_id).texto_id)).map(p => p.valor));
 
   const sesiones = cerradas.map(s => {
     const deLaSesion = new Set(textos.filter(t => t.sesion_id === s.id).map(t => t.id));
@@ -1566,13 +1576,13 @@ function acumulado(taller_id){
             textos: textos.filter(t => t.sesion_id === s.id).length};
   }).sort((a,b) => a.s.fecha.localeCompare(b.s.fecha));
 
-  return {cerradas, filas, sesiones, general};
+  return {cerradas, filas: filas.filter(f => f.n >= MIN_VALORACIONES), fuera, sesiones, general};
 }
 
 function cardAcumulado(){
   const t = tallerActivo();
   if(!t) return '';
-  const {cerradas, filas, sesiones, general} = acumulado(t.id);
+  const {cerradas, filas, fuera, sesiones, general} = acumulado(t.id);
 
   if(!cerradas.length || !filas.length){
     return `<div class="card">
@@ -1583,7 +1593,6 @@ function cardAcumulado(){
   }
 
   const orden = [...filas].sort((a,b) => b.promedio - a.promedio);
-  const pocos = orden.filter(f => f.n < 5).length;
 
   return `<div class="card">
     <h2>Acumulado del taller</h2>
@@ -1602,9 +1611,10 @@ function cardAcumulado(){
       <span class="pill fuerte">${fmt2(f.promedio)}</span>
     </div>`).join('')}
 
-    ${pocos ? `<p class="sub" style="margin-top:12px">${pocos}
-      ${pocos === 1 ? 'texto tiene' : 'textos tienen'} menos de cinco valoraciones.
-      Con tan pocas, el promedio dice más del azar que del texto.</p>` : ''}
+    ${fuera.length ? `<p class="sub" style="margin-top:12px">Fuera del acumulado, por tener
+      menos de ${MIN_VALORACIONES} valoraciones (con tan pocas, el promedio dice más del azar
+      que del texto): ${fuera.map(f => `${esc(f.t.titulo)}, de ${esc(autorDe(f.t))}
+      (${f.n})`).join('; ')}. Los participantes ven este mismo acumulado.</p>` : ''}
 
     <div style="padding:16px 0 0;border-top:2px solid var(--line);margin-top:14px">
       <p class="sub" style="margin-bottom:8px"><b>Sesión por sesión</b></p>
