@@ -3,83 +3,80 @@
 Producción: https://narradores-invisibles.vercel.app
 Desplegar con `./deploy.sh` (nunca `vercel --prod` solo: no mueve el alias).
 
-## Antes de usarlo en serio
+## Estado: en pausa desde el 25 de octubre de 2026
 
-- [x] **Correr `supabase/migracion-ranking-publico.sql`.** Hecho el 11 de
-      septiembre de 2026. Ojo: que corriera no prueba que funcione. El mensaje de
-      rechazo es el mismo en la versión vieja y la nueva, así que desde fuera no
-      se distinguen: lo confirma la prueba de abajo y ninguna otra cosa.
-- [x] **Probar la ruta del participante con una cuenta sin rol admin.** Hecho el
-      12 de septiembre de 2026, en vivo con Camilo, calificando dos textos.
-      Queda pendiente solo la comprobación por consola de que no puede leer
-      votos ajenos.
-- [ ] **Comprobar por consola que un participante no lee votos ajenos.** La
-      interfaz no puede demostrarlo. Pesa más desde que la sesión queda abierta
-      hasta el martes: más gente califica desde la casa, con tiempo de curiosear.
-      Se hace solo, sin Camilo, bajándose de admin un momento:
-      1. SQL Editor: `update semillero.perfiles set rol = 'participante' where
-         id = (select id from auth.users where email = 'jd.reyespaez@gmail.com');`
-         y anotar `select count(*) from semillero.evaluaciones e join auth.users u
-         on u.id = e.evaluador_id where u.email = 'jd.reyespaez@gmail.com';`
-      2. En Chrome, en el computador, recargar la app (ya no sale "Panel"),
-         `Cmd + Option + J` y correr
-         `(await sb.from('evaluaciones').select('*')).data.length`
-         (si no deja pegar, escribir `allow pasting`).
-      3. Mismo número que el paso 1 = anonimato real. Más = cualquiera ve quién
-         votó qué: parar todo.
-      4. Volver a admin: el mismo `update` con `rol = 'admin'`.
-- [ ] **Probar con más de dos teléfonos**, en la red del lugar donde va a ser.
+El taller terminó. La app queda en el aire tal como está: los participantes ven
+el "Acumulado del taller" (textos seleccionados para los fanzines, solo los que
+tienen 10 valoraciones o más) y cada autor ve lo suyo en su perfil.
 
-## Prometido en el copy y no construido
+Nada de lo de abajo se construye mientras no haya un taller nuevo que lo use.
+Si vuelve, se empieza por "Antes de reabrir", en ese orden.
 
-- [x] **Acumulación entre sesiones.** Hecha el 16 de septiembre de 2026:
-      tarjeta "Acumulado del taller" en el panel, con todos los textos de las
-      sesiones cerradas ordenados por promedio, más la media de cada sesión.
-      **Decisión: promedio simple.** Se construyó también una corrección por la
-      severidad de cada evaluador y Juanda la descartó: el promedio es el de
-      quienes estuvieron en esa clase, sin ajustes. Vale recordar que con los
-      datos del 12 los tres textos quedaron dentro de 0.13 puntos, así que el
-      orden es más ruido que señal: sirve para conversar, no para coronar.
+## Antes de reabrir
 
-## Para quien no estuvo en la clase
+1. **Comprobar por consola que un participante no lee votos ajenos.** Nunca se
+   hizo (pendiente desde el 11 de septiembre). La interfaz no puede demostrarlo.
+   Se hace solo, bajándose de admin un momento:
+   1. SQL Editor: `update semillero.perfiles set rol = 'participante' where
+      id = (select id from auth.users where email = 'jd.reyespaez@gmail.com');`
+      y anotar `select count(*) from semillero.evaluaciones e join auth.users u
+      on u.id = e.evaluador_id where u.email = 'jd.reyespaez@gmail.com';`
+   2. En Chrome, recargar la app (ya no sale "Panel"), `Cmd + Option + J` y
+      correr `(await sb.from('evaluaciones').select('*')).data.length`
+      (si no deja pegar, escribir `allow pasting`).
+   3. Mismo número que el paso 1 = anonimato real. Más = cualquiera ve quién
+      votó qué: parar todo.
+   4. Volver a admin: el mismo `update` con `rol = 'admin'`.
+2. **Riesgo heredado: la `service_role` del cotizador.** La base la comparte con
+   el cotizador de contenedores, que usa esa llave desde Vercel. Se salta toda
+   la RLS: quien la tenga puede leer quién votó qué. Sacar el semillero a su
+   propio proyecto de Supabase o quitarle la llave al cotizador.
+3. **Probar en teléfono lo que salió sin probar:**
+   - El commit 1e78fbe (3 de octubre): el autor no se atasca en su propio
+     texto, un envío fallido no borra nada, errores junto al botón.
+   - El acumulado visto con una cuenta de participante (solo se probó como admin).
+   - En iPhone real, si la barra fija tapa el comentario con el teclado abierto.
+   - Con más de dos teléfonos, en la red del lugar.
+4. **Limpiar los datos de prueba** de la base (acordado desde el 12 de
+   septiembre, nunca hecho).
 
-Desde octubre de 2026 la sesión queda abierta hasta el martes siguiente, para
-que califique también quien no asistió. En clase se lee en el fanzine impreso;
-quien no fue no lo tiene.
+## Deuda en el código
 
-- [ ] **Enlace al texto en Discord.** Cada texto lleva el enlace a la
-      publicación de Discord donde su autor lo compartió, y la pantalla de
-      calificación muestra "Leer el texto en Discord". Probable forma: una
-      columna `textos.discord_url` (opcional) que el equipo pega al agregar el
-      texto en el panel. Si un texto no la tiene, no se muestra nada.
+- [ ] **Enlaces de Discord escritos en el código y buscados por título**
+      (`discordLinks` en `cargarRankingData`). Si alguien cambia un título, el
+      texto pierde su enlace sin error. Lo bien hecho: columna opcional
+      `textos.discord_url` que el equipo pega en el panel, y que sirva también
+      para mostrar "Leer el texto en Discord" en la pantalla de calificación.
+- [ ] **Copy del modelo viejo** que sigue en pantalla: "No recargues",
+      "Espera al siguiente texto", "Al final vas a ver los promedios".
+- [ ] **Leyenda fija de la escala** al calificar (1 todavía no funciona ·
+      5 punto fuerte).
+- [ ] `generarRankingModal` ya no se usa: borrarla.
+- [ ] `cargarRankingData` trae las sesiones de todos los talleres y llama una
+      función por sesión. Con un solo taller no importa; con varios, filtrar
+      por el taller del participante.
+- [ ] Detonantes y fanzines del perfil van a mano en `documentosSesion`, uno
+      por sesión.
 
-## Lo que se va a notar en el salón
+## Lo que se notaría en el salón (si hay otro taller presencial)
 
-- [ ] **Saber quién falta por enviar, no solo cuántos.** Hoy el panel dice
-      "12 de 17". En vivo la pregunta real es "¿a quién esperamos?".
-- [ ] **Los ausentes rompen el contador.** Si tres personas no vinieron, nunca
-      llega a 17 y el panel parece incompleto toda la sesión. Posible arreglo:
-      marcar presentes al empezar, y que el denominador sean los presentes.
-- [ ] **Qué pasa si alguien pierde señal al enviar.** El voto es atómico en la
-      base (entra completo o no entra), pero el aviso de error en la interfaz es
-      discreto y nadie lo va a ver en un teléfono.
+- [ ] **Saber quién falta por enviar, no solo cuántos.**
+- [ ] **Los ausentes rompen el contador.** Posible arreglo: marcar presentes al
+      empezar y que el denominador sean los presentes.
+- [ ] **Qué pasa si alguien pierde señal al enviar.** El voto es atómico, pero
+      el aviso de error es discreto.
 
 ## Decisiones aplazadas
 
-- [ ] **Limpiar los datos de prueba** de la base. Acordado: después de la clase
-      del 12 de septiembre de 2026.
-- [ ] **El autor enlazado o no.** Hoy el bloqueo de "no califiques tu texto"
-      solo actúa si el nombre escrito coincide exacto con un perfil registrado.
-      Se dejó así a propósito. Alternativas: quitar el bloqueo del todo, u
-      obligar a enlazar todo texto a un perfil.
-- [ ] **Promedio por participante** (quién califica duro y quién suave). Se
-      propuso y Juanda escogió otra cosa. Sigue siendo el insumo natural para
-      corregir la acumulación.
-- [ ] **Editar los criterios desde la app.** Están en tabla justamente para eso,
-      pero hoy se cambian con SQL.
+- **El autor enlazado o no.** El bloqueo de "no califiques tu texto" solo actúa
+  si el nombre coincide exacto con un perfil. Se dejó así a propósito.
+- **Promedio por participante** (quién califica duro y quién suave). Juanda lo
+  descartó para el acumulado; sigue siendo el insumo si algún día se corrige.
+- **Editar los criterios desde la app.** Están en tabla para eso; hoy, por SQL.
 
-## Riesgo heredado
+## Hecho (para no volver a discutirlo)
 
-La base la comparte con el cotizador de contenedores, que usa la `service_role`
-key desde Vercel. Esa llave se salta toda la RLS en cualquier esquema: quien la
-tenga puede leer quién votó qué.
+- Acumulado del taller (16 sep): promedio simple, sin corrección por severidad.
+- Calificación secuencial, sesión abierta hasta el martes (3 oct).
+- Acumulado visible para participantes, mínimo de 10 valoraciones, enlaces de
+  Discord de los 8 textos y "En el aire" renombrado a "Desde el cielo" (24 oct).
